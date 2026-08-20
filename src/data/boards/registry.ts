@@ -4,6 +4,11 @@ import { headingForNewShores3p, headingForNewShores4p } from "./seafarers/headin
 import { fourIslands3p, fourIslands4p } from "./seafarers/fourIslands";
 import { fogIslands3p, fogIslands4p } from "./seafarers/fogIslands";
 import { throughTheDesert3p, throughTheDesert4p } from "./seafarers/throughTheDesert";
+import { forgottenTribe } from "./seafarers/forgottenTribe";
+import { clothForCatan } from "./seafarers/clothForCatan";
+import { pirateIslands } from "./seafarers/pirateIslands";
+import { wondersOfCatan } from "./seafarers/wondersOfCatan";
+import { newWorld } from "./seafarers/newWorld";
 
 export interface BoardEntry {
   id: string;
@@ -26,6 +31,11 @@ export const BOARD_REGISTRY: BoardEntry[] = [
   { id: "sf-fog-islands-4p", label: "Seafarers: The Fog Islands (4p)", template: fogIslands4p },
   { id: "sf-through-desert-3p", label: "Seafarers: Through the Desert (3p)", template: throughTheDesert3p },
   { id: "sf-through-desert-4p", label: "Seafarers: Through the Desert (4p)", template: throughTheDesert4p },
+  { id: "sf-forgotten-tribe", label: "Seafarers: The Forgotten Tribe", template: forgottenTribe },
+  { id: "sf-cloth-for-catan", label: "Seafarers: Cloth for Catan", template: clothForCatan },
+  { id: "sf-pirate-islands", label: "Seafarers: The Pirate Islands", template: pirateIslands },
+  { id: "sf-wonders-of-catan", label: "Seafarers: The Wonders of Catan", template: wondersOfCatan },
+  { id: "sf-new-world", label: "Seafarers: New World", template: newWorld },
 ];
 
 export function getBoardEntry(id: string): BoardEntry | undefined {

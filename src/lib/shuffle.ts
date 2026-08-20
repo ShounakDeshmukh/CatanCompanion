@@ -136,8 +136,12 @@ export function generateBoard(base: CatanBoard, seed: number = randomSeed()): Ge
     );
 
     for (const [group, pool] of numberPoolByGroup) {
-      const destinations = (terrainGroups.get(group) ?? []).filter((i) =>
-        isResourceHexType(cells[i].type)
+      // Shuffled too: some scenarios (The Forgotten Tribe) have more resource hexes than chits,
+      // so a few end up numberless - which ones should vary by seed, not always be the same
+      // fixed leftovers from the template's array order.
+      const destinations = shuffle(
+        (terrainGroups.get(group) ?? []).filter((i) => isResourceHexType(cells[i].type)),
+        rng
       );
       const values = shuffle(pool, rng);
       destinations.forEach((cellIndex, i) => (cells[cellIndex].number = values[i]));
