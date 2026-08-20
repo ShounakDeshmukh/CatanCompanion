@@ -1,0 +1,54 @@
+.rules-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.75rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0;
+}
+
+.rules-tabs button {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 600;
+  padding: 0.6rem 0.9rem;
+  cursor: pointer;
+}
+
+.rules-tabs button.active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+.rules-tagline {
+  color: var(--color-text-muted);
+  margin-bottom: 1.5rem;
+  max-width: 42em;
+}
+
+.rule-section {
+  margin-bottom: 1.25rem;
+}
+
+.rule-section h2 {
+  font-size: 1.15rem;
+  margin-bottom: 0.6rem;
+}
+
+.rule-section p {
+  margin: 0 0 0.7rem;
+  color: var(--color-text);
+}
+
+.rule-section ul {
+  margin: 0 0 0.7rem;
+  padding-left: 1.2rem;
+}
+
+.rule-section li {
+  margin-bottom: 0.3rem;
+}
