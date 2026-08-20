@@ -1,0 +1,142 @@
+.hex-board {
+  display: grid;
+  gap: 3px;
+  background: var(--color-border);
+  border-radius: var(--radius);
+  padding: 3px;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.hex {
+  position: relative;
+  background: var(--hex-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hex--open-water {
+  opacity: 0.9;
+}
+
+.hex-chit {
+  background: var(--color-bg-raised);
+  border-radius: 999px;
+  width: 2.1em;
+  height: 2.1em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  font-family: var(--font-heading);
+}
+
+.hex-chit__value {
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--color-text);
+}
+
+.hex-chit--hot .hex-chit__value {
+  color: var(--color-accent);
+}
+
+.hex-chit__pips {
+  font-size: 0.5rem;
+  line-height: 1;
+  letter-spacing: 1px;
+  color: var(--color-text-muted);
+}
+
+.hex-robber {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0.7em;
+  height: 1.1em;
+  background: #2a2a2a;
+  border-radius: 40% 40% 50% 50%;
+  opacity: 0.85;
+}
+
+.hex-port {
+  position: absolute;
+  bottom: 0.3em;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.05em 0.5em;
+  font-size: 0.65rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+
+.map-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.map-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.map-controls select {
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+}
+
+.map-controls__checkbox {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.4rem !important;
+}
+
+.share-link {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 1rem 0;
+  flex-wrap: wrap;
+}
+
+.share-link input {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-raised);
+  color: var(--color-text-muted);
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+@media print {
+  .site-nav,
+  .map-controls,
+  .share-link,
+  .btn {
+    display: none !important;
+  }
+  .hex-board {
+    max-width: 100%;
+  }
+}

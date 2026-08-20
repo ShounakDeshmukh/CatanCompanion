@@ -11,7 +11,35 @@
     <main class="container">
       <header style="padding: 2rem 0 1rem">
         <h1>Map Generator</h1>
+        <p style="color: var(--color-text-muted); max-width: 40em">
+          Generates a board the same way the official rules do: hexes and number chits are
+          randomized, harbors stay put. Optional fairness constraints below are common house
+          rules, not official ones.
+        </p>
       </header>
+
+      <form class="map-controls" id="map-controls">
+        <label>
+          Board
+          <select id="board-select"></select>
+        </label>
+        <label class="map-controls__checkbox">
+          <input type="checkbox" id="no-6-8-adjacent" />
+          No 6/8 touching
+        </label>
+        <label class="map-controls__checkbox">
+          <input type="checkbox" id="no-same-adjacent" />
+          No matching numbers touching
+        </label>
+        <button class="btn" type="submit">Generate</button>
+      </form>
+
+      <div class="share-link">
+        <input id="share-url" type="text" readonly aria-label="Shareable link" />
+        <button class="btn btn-secondary" type="button" id="copy-link">Copy link</button>
+        <button class="btn btn-secondary" type="button" id="print-board">Print</button>
+      </div>
+
       <div id="map-generator-root"></div>
     </main>
     <script type="module" src="/src/pages/mapGenerator.ts"></script>

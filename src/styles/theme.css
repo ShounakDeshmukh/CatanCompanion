@@ -11,12 +11,13 @@
 
   --color-brick: #c1502e;
   --color-wood: #3f6b35;
-  --color-sheep: #8aa624;
+  --color-wool: #8aa624;
   --color-wheat: #d4a017;
   --color-ore: #6b6f76;
   --color-sea: #3a6ea5;
   --color-desert: #dcb877;
   --color-gold: #e0a83e;
+  --color-fog: #a9a08d;
 
   --font-heading: "Fraunces", Georgia, "Times New Roman", serif;
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
