@@ -1,0 +1,15 @@
+import { defineConfig } from "vite";
+import { resolve } from "node:path";
+
+export default defineConfig({
+  build: {
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, "index.html"),
+        rules: resolve(__dirname, "rules.html"),
+        mapGenerator: resolve(__dirname, "map-generator.html"),
+        costCards: resolve(__dirname, "cost-cards.html"),
+      },
+    },
+  },
+});

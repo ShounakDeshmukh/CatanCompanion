@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Catan Companion</title>
+    <link rel="stylesheet" href="/src/styles/theme.css" />
+  </head>
+  <body>
+    <div id="nav"></div>
+    <main class="container">
+      <header style="padding: 2.5rem 0 1.5rem">
+        <h1>Catan Companion</h1>
+        <p style="color: var(--color-text-muted); max-width: 40em">
+          One place for rules, boards, and costs across Catan, Seafarers, and Cities &amp;
+          Knights.
+        </p>
+      </header>
+
+      <section style="display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))">
+        <a class="card" href="./rules.html" style="text-decoration: none; color: inherit">
+          <h2>Rules</h2>
+          <p style="color: var(--color-text-muted); margin: 0">
+            Base, Seafarers, and Cities &amp; Knights rules, plus notes on combining them.
+          </p>
+        </a>
+        <a class="card" href="./map-generator.html" style="text-decoration: none; color: inherit">
+          <h2>Map Generator</h2>
+          <p style="color: var(--color-text-muted); margin: 0">
+            Generate a fair random board for any ruleset or Seafarers scenario, and share it
+            with a link.
+          </p>
+        </a>
+        <a class="card" href="./cost-cards.html" style="text-decoration: none; color: inherit">
+          <h2>Cost Cards</h2>
+          <p style="color: var(--color-text-muted); margin: 0">
+            Building, ship, and improvement costs, filterable by which expansions you're
+            playing with.
+          </p>
+        </a>
+      </section>
+    </main>
+    <script type="module" src="/src/pages/home.ts"></script>
+  </body>
+</html>
