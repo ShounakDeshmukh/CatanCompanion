@@ -11,7 +11,18 @@
     <main class="container">
       <header style="padding: 2rem 0 1rem">
         <h1>Cost Cards</h1>
+        <p style="color: var(--color-text-muted); max-width: 40em">
+          Quick reference for what everything costs. Toggle expansions to match what your
+          group is playing with.
+        </p>
       </header>
+
+      <form class="expansion-toggles" id="expansion-toggles">
+        <label><input type="checkbox" value="base" checked /> Base</label>
+        <label><input type="checkbox" value="seafarers" checked /> Seafarers</label>
+        <label><input type="checkbox" value="citiesKnights" checked /> Cities &amp; Knights</label>
+      </form>
+
       <div id="cost-cards-root"></div>
     </main>
     <script type="module" src="/src/pages/costCards.ts"></script>
