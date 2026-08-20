@@ -11,6 +11,7 @@ const HEX_COLOR_VAR: Record<HexType, string> = {
   desert: "--color-desert",
   sea: "--color-sea",
   fog: "--color-fog",
+  village: "--color-cloth",
 };
 
 const HEX_LABEL: Record<HexType, string> = {
@@ -23,6 +24,7 @@ const HEX_LABEL: Record<HexType, string> = {
   desert: "Desert",
   sea: "Sea",
   fog: "Fog",
+  village: "Cloth Village",
 };
 
 const PORT_LABEL: Record<PortType, string> = {
@@ -64,8 +66,19 @@ function buildHexElement(cell: HexCell, index: number, neighborIsLand: boolean):
   const hex = document.createElement("div");
   hex.className = "hex";
   hex.dataset.hexIndex = String(index);
-  hex.style.setProperty("--hex-color", `var(${HEX_COLOR_VAR[cell.type]})`);
   hex.style.clipPath = HEX_CLIP_PATH;
+
+  if (cell.hidden) {
+    hex.style.setProperty("--hex-color", "var(--color-fog)");
+    hex.title = "Unexplored";
+    const mark = document.createElement("span");
+    mark.className = "hex-chit__value";
+    mark.textContent = "?";
+    hex.appendChild(mark);
+    return hex;
+  }
+
+  hex.style.setProperty("--hex-color", `var(${HEX_COLOR_VAR[cell.type]})`);
   hex.title = HEX_LABEL[cell.type];
 
   if (cell.type === "desert") {

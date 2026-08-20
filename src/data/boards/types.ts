@@ -1,5 +1,6 @@
 export type ResourceHexType = "hills" | "forest" | "pasture" | "fields" | "mountains" | "gold";
-export type NonResourceHexType = "desert" | "sea" | "fog";
+/** A small trading-post hex from Cloth for Catan: produces cloth commodities, not a resource. */
+export type NonResourceHexType = "desert" | "sea" | "fog" | "village";
 export type HexType = ResourceHexType | NonResourceHexType;
 
 export type Resource = "brick" | "wood" | "wool" | "wheat" | "ore";
@@ -54,6 +55,8 @@ export interface HexCell {
   group?: number;
   /** Per-scenario cap on how favorable a number this hex may receive after shuffling. */
   maxPipsOnChit?: 1 | 2 | 3 | 4 | 5;
+  /** The Fog Islands: a real, seed-determined hex rendered face-down until "explored" at the table. */
+  hidden?: boolean;
 }
 
 export type TemplateCell = HexCell | { type: "empty" };

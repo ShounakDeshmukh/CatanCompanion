@@ -1,4 +1,11 @@
-import type { HexCell, TemplateCell } from "../data/boards/types";
+import type { HexCell, PortType, TemplateCell } from "../data/boards/types";
+
+export const sea = (): HexCell => ({ type: "sea", fixed: true });
+export const harbor = (type: PortType): HexCell => ({
+  type: "sea",
+  fixed: true,
+  port: { type, fixed: true },
+});
 
 /**
  * Describes a board whose land forms a symmetric blob (each land row flanked by exactly one
@@ -30,4 +37,38 @@ export function buildHexagonGrid(spec: HexagonSpec): TemplateCell[][] {
     ...Array.from({ length: maxLen - row.length }, (): TemplateCell => ({ type: "empty" })),
     ...row,
   ]);
+}
+
+const emptyCells = (n: number): TemplateCell[] =>
+  Array.from({ length: n }, () => ({ type: "empty" }));
+
+/**
+ * Stacks multiple independently-built blocks (e.g. a main island and one or more small
+ * islands, each its own buildHexagonGrid output) into a single grid, one on top of the next,
+ * separated by a blank row. padLeft shifts a block right by that many extra empty columns,
+ * letting islands be staggered rather than all sharing the same centerline. Used for every
+ * multi-island Seafarers scenario, where an exact match to the manual's specific scattered
+ * layout isn't the goal - a reasonable, correctly-composed arrangement is (row widths don't
+ * need to line up across blocks; the CSS grid sizes itself off the widest row automatically).
+ *
+ * The separator row matters, not just cosmetically: two hex rows immediately adjacent in the
+ * grid are treated as neighboring (see boardFactory's row±1 offsets), so without a gap, the
+ * last row of one block and the first row of the next could spuriously "touch."
+ */
+export function stackBlocks(blocks: { grid: TemplateCell[][]; padLeft?: number }[]): TemplateCell[][] {
+  return blocks.flatMap(({ grid, padLeft = 0 }, i) => [
+    ...(i > 0 ? [emptyCells(1)] : []),
+    ...grid.map((row) => (padLeft > 0 ? [...emptyCells(padLeft), ...row] : row)),
+  ]);
+}
+
+/** A small island with a plain one-hex-thick sea border and no harbors - the common case. */
+export function plainIsland(landRows: HexCell[][]): TemplateCell[][] {
+  return buildHexagonGrid({
+    landRows,
+    leftBorder: landRows.map(sea),
+    rightBorder: landRows.map(sea),
+    topCap: Array.from({ length: landRows[0].length + 1 }, sea),
+    bottomCap: Array.from({ length: landRows.at(-1)!.length + 1 }, sea),
+  });
 }
