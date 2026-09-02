@@ -161,18 +161,65 @@ MANUAL_COUNTS["sf56-new-world"] = {
   ports: { ...SEAFARERS_5_6_PORTS },
 };
 
+// ---------------------------------------------------------------------------
+// The remaining 3-4 player scenarios, from Rules/Catan Seafarers 3_4.pdf.
+// ---------------------------------------------------------------------------
+
+MANUAL_COUNTS["sf-fog-islands-3p"] = {
+  source: "Catan Seafarers 3_4.pdf p.8",
+  // faceup only; the other 12 hexes are the facedown stack the host lays out
+  terrain: { hills: 2, forest: 4, pasture: 4, fields: 2, mountains: 2, fog: 12 },
+  chits: { 3: 1, 4: 1, 5: 2, 6: 2, 8: 2, 9: 2, 10: 1, 11: 2, 12: 1 },
+  ports: { "3:1": 3, ...ONE_OF_EACH_2_TO_1 },
+};
+
+MANUAL_COUNTS["sf-fog-islands-4p"] = {
+  source: "Catan Seafarers 3_4.pdf p.9",
+  terrain: { hills: 3, forest: 4, pasture: 4, fields: 3, mountains: 3, fog: 12 },
+  chits: { 2: 1, 3: 2, 4: 2, 5: 2, 6: 2, 8: 2, 9: 2, 10: 2, 11: 1, 12: 1 },
+  ports: { "3:1": 4, ...ONE_OF_EACH_2_TO_1 },
+};
+
+MANUAL_COUNTS["sf-forgotten-tribe"] = {
+  source: "Catan Seafarers 3_4.pdf p.12",
+  terrain: { gold: 2, hills: 5, forest: 5, pasture: 5, fields: 5, mountains: 5, desert: 3 },
+  chits: { 2: 1, 3: 2, 4: 2, 5: 2, 6: 2, 8: 2, 9: 2, 10: 2, 11: 2, 12: 1 },
+  ports: { "3:1": 1, ...ONE_OF_EACH_2_TO_1 },
+};
+
+MANUAL_COUNTS["sf-cloth-for-catan"] = {
+  source: "Catan Seafarers 3_4.pdf p.14",
+  // the 2 deserts and 2 gold fields of the component table are the four cloth villages
+  terrain: { village: 4, hills: 3, forest: 4, pasture: 4, fields: 5, mountains: 4 },
+  chits: { 2: 2, 3: 3, 4: 3, 5: 3, 6: 3, 8: 3, 9: 3, 10: 3, 11: 3, 12: 2 },
+  ports: { "3:1": 4, ...ONE_OF_EACH_2_TO_1 },
+};
+
+MANUAL_COUNTS["sf-pirate-islands"] = {
+  source: "Catan Seafarers 3_4.pdf p.17",
+  terrain: { gold: 2, hills: 5, forest: 5, pasture: 5, fields: 5, mountains: 5, desert: 3 },
+  chits: { 2: 1, 3: 2, 4: 3, 5: 3, 6: 3, 8: 3, 9: 3, 10: 3, 11: 2, 12: 1 },
+  ports: { "3:1": 3, ...ONE_OF_EACH_2_TO_1 },
+};
+
+MANUAL_COUNTS["sf-wonders-of-catan"] = {
+  source: "Catan Seafarers 3_4.pdf p.19",
+  terrain: { gold: 2, hills: 5, forest: 5, pasture: 5, fields: 5, mountains: 5, desert: 3 },
+  chits: { 2: 2, 3: 3, 4: 3, 5: 3, 6: 3, 8: 3, 9: 3, 10: 3, 11: 3, 12: 1 },
+  ports: { "3:1": 4, ...ONE_OF_EACH_2_TO_1 },
+};
+
+MANUAL_COUNTS["sf-new-world"] = {
+  source: "Catan Seafarers 3_4.pdf p.20",
+  terrain: { hills: 4, forest: 5, pasture: 5, fields: 5, mountains: 4 },
+  chits: { 2: 1, 3: 3, 4: 3, 5: 3, 6: 2, 8: 2, 9: 3, 10: 3, 11: 2, 12: 1 },
+  ports: { "3:1": 5, ...ONE_OF_EACH_2_TO_1 },
+};
+
 /**
  * Boards whose rule-book component table has not been transcribed yet. Their layouts are
  * fine - they come from the same ported source as the rest - but nothing here cross-checks
  * them, so they are verified for internal consistency only. Move an entry out by adding its
  * MANUAL_COUNTS row.
  */
-export const NOT_YET_TRANSCRIBED = new Set([
-  "sf-fog-islands-3p",
-  "sf-fog-islands-4p",
-  "sf-forgotten-tribe",
-  "sf-cloth-for-catan",
-  "sf-pirate-islands",
-  "sf-wonders-of-catan",
-  "sf-new-world",
-]);
+export const NOT_YET_TRANSCRIBED = new Set<string>([]);

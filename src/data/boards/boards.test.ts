@@ -113,8 +113,14 @@ for (const entry of BOARD_REGISTRY) {
         const { port: originalPort, ...originalTerrain } = original;
         const { port: shuffledPort, ...shuffledTerrain } = hexes[i];
         assert.deepEqual(shuffledTerrain, originalTerrain, `fixed hex ${i} moved`);
+        // a printed harbor never changes edge. Its type does where the book's setup
+        // shuffles the port tokens among the locations shown on the map.
         if (originalPort && !originalPort.moveable) {
-          assert.deepEqual(shuffledPort, originalPort, `fixed port ${i} moved`);
+          assert.ok(shuffledPort, `fixed port ${i} vanished`);
+          assert.equal(shuffledPort?.orientation, originalPort.orientation, `port ${i} turned`);
+          if (!board.shufflePortTypes) {
+            assert.equal(shuffledPort?.type, originalPort.type, `fixed port ${i} changed type`);
+          }
         }
       });
     }
@@ -555,4 +561,48 @@ test("every registry id is unique", () => {
 test("Cities & Knights 5-6 reuses the base 5-6 board", () => {
   // C&K changes the rules, not the map
   assert.equal(getBoardEntry("catan-5-6")?.template, getBoardEntry("ck-5-6")?.template);
+});
+
+test("the per-terrain disc rules the rule books print are obeyed", () => {
+  for (const entry of BOARD_REGISTRY) {
+    const board = buildBoard(entry.template);
+    if (!board.minPipsOnHexTypes && !board.maxPipsOnHexTypes) continue;
+    for (const seed of [1, 2, 3, 4, 5]) {
+      for (const hex of generateBoard(board, NO_CONSTRAINTS, seed).hexes) {
+        if (hex.number === undefined || hex.fixed) continue;
+        if (!(hex.type in RESOURCE_BY_HEX)) continue;
+        const type = hex.type as keyof typeof RESOURCE_BY_HEX;
+        const pips = 6 - Math.abs(7 - hex.number);
+        const min = board.minPipsOnHexTypes?.[type];
+        const max = board.maxPipsOnHexTypes?.[type];
+        if (min !== undefined) {
+          assert.ok(pips >= min, `${entry.id}: ${hex.number} on a ${hex.type} is too low`);
+        }
+        if (max !== undefined) {
+          assert.ok(pips <= max, `${entry.id}: ${hex.number} on a ${hex.type} is too high`);
+        }
+      }
+    }
+  }
+});
+
+test("shuffled harbors keep their edges and their set of port types", () => {
+  for (const entry of BOARD_REGISTRY) {
+    const board = buildBoard(entry.template);
+    if (!board.shufflePortTypes) continue;
+    const printed = board.recommendedLayout;
+    let moved = 0;
+
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const { hexes } = generateBoard(board, NO_CONSTRAINTS, seed);
+      assert.deepEqual(portCounts(hexes), portCounts(printed), `${entry.id}: port pool changed`);
+      printed.forEach((original, i) => {
+        if (!original.port) return;
+        assert.ok(hexes[i].port, `${entry.id}: harbor ${i} left its location`);
+        if (hexes[i].port?.type !== original.port.type) moved++;
+      });
+    }
+
+    assert.ok(moved > 0, `${entry.id}: shufflePortTypes is set but nothing ever moves`);
+  }
 });

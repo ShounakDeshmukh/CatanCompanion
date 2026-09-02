@@ -445,7 +445,23 @@ function validPortOrientations(board: CatanBoard, hexes: Hex[], index: number): 
  * whole hexes, so a harbour would otherwise drift into open water on its sea hex. Returns
  * false if the ports will not all fit, which the caller treats like any other failed attempt.
  */
+/**
+ * Most scenarios' setups shuffle the harbors among the locations printed on the map. The
+ * locations stay put, so this only permutes which port sits in each.
+ */
+function shufflePortTypes(hexes: Hex[], rng: () => number): void {
+  const sites = hexes.flatMap((hex, i) => (hex.port && !hex.port.moveable ? [i] : []));
+  const types = sites.map((i) => (hexes[i].port as Port).type);
+  shuffleInPlace(types, rng);
+  sites.forEach((site, n) => {
+    const hex = hexes[site] as Hex & { port: Port };
+    hexes[site] = { ...hex, port: { ...hex.port, type: types[n] } } as Hex;
+  });
+}
+
 function shufflePorts(board: CatanBoard, hexes: Hex[], rng: () => number): boolean {
+  if (board.shufflePortTypes) shufflePortTypes(hexes, rng);
+
   const loose = board.recommendedLayout
     .filter((hex) => hex.port?.moveable)
     .map((hex) => hex.port as Port);

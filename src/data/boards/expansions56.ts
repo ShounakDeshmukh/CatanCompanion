@@ -98,6 +98,7 @@ export const BOARD_TEMPLATES_5_6: Record<string, CatanBoardTemplate> = {
       ],
     ],
     horizontal: true,
+    shufflePortTypes: true,
   },
 
   "sf56-six-islands": {
@@ -181,6 +182,7 @@ export const BOARD_TEMPLATES_5_6: Record<string, CatanBoardTemplate> = {
       ],
     ],
     horizontal: true,
+    shufflePortTypes: true,
   },
 
   "sf56-through-desert": {
@@ -269,6 +271,7 @@ export const BOARD_TEMPLATES_5_6: Record<string, CatanBoardTemplate> = {
       ],
     ],
     horizontal: true,
+    shufflePortTypes: true,
   },
 
   "sf56-forgotten-tribe": {

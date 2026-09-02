@@ -63,6 +63,7 @@ export const BOARD_TEMPLATES: Record<string, CatanBoardTemplate> = {
         { type: "sea", fixed: true },
       ],
     ],
+    shufflePortTypes: true,
   },
 
   "catan-5-6": {
@@ -128,6 +129,7 @@ export const BOARD_TEMPLATES: Record<string, CatanBoardTemplate> = {
         { type: "sea", fixed: true },
       ],
     ],
+    shufflePortTypes: true,
   },
 
   "ck-3-4": {
@@ -178,6 +180,7 @@ export const BOARD_TEMPLATES: Record<string, CatanBoardTemplate> = {
         { type: "sea", fixed: true },
       ],
     ],
+    shufflePortTypes: true,
   },
 
   "sf-heading-3p": {
@@ -243,6 +246,7 @@ export const BOARD_TEMPLATES: Record<string, CatanBoardTemplate> = {
       ],
     ],
     horizontal: true,
+    shufflePortTypes: true,
   },
 
   "sf-heading-4p": {
@@ -315,6 +319,7 @@ export const BOARD_TEMPLATES: Record<string, CatanBoardTemplate> = {
       ],
     ],
     horizontal: true,
+    shufflePortTypes: true,
   },
 
   "sf-four-islands-3p": {
@@ -382,7 +387,8 @@ export const BOARD_TEMPLATES: Record<string, CatanBoardTemplate> = {
       ],
     ],
     horizontal: true,
-    minPipsOnHexTypes: { forest: 2, pasture: 2 },
+    minPipsOnHexTypes: { forest: 3, pasture: 3 },
+    shufflePortTypes: true,
   },
 
   "sf-four-islands-4p": {
@@ -450,7 +456,8 @@ export const BOARD_TEMPLATES: Record<string, CatanBoardTemplate> = {
       ],
     ],
     horizontal: true,
-    minPipsOnHexTypes: { forest: 2, pasture: 2 },
+    minPipsOnHexTypes: { forest: 3, pasture: 3 },
+    shufflePortTypes: true,
   },
 
   "sf-fog-islands-3p": {
@@ -523,6 +530,7 @@ export const BOARD_TEMPLATES: Record<string, CatanBoardTemplate> = {
       terrain: { sea: 2, gold: 2, hills: 2, forest: 1, pasture: 1, fields: 2, mountains: 2 },
       chits: { 3: 2, 4: 1, 5: 1, 6: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1 },
     },
+    shufflePortTypes: true,
   },
 
   "sf-fog-islands-4p": {
@@ -597,6 +605,7 @@ export const BOARD_TEMPLATES: Record<string, CatanBoardTemplate> = {
       terrain: { sea: 2, gold: 2, hills: 2, forest: 1, pasture: 1, fields: 2, mountains: 2 },
       chits: { 3: 1, 4: 1, 5: 1, 6: 1, 8: 1, 9: 1, 10: 1, 11: 2, 12: 1 },
     },
+    shufflePortTypes: true,
   },
 
   "sf-through-desert-3p": {
@@ -661,6 +670,7 @@ export const BOARD_TEMPLATES: Record<string, CatanBoardTemplate> = {
     ],
     horizontal: true,
     maxPipsOnHexTypes: { gold: 4 },
+    shufflePortTypes: true,
   },
 
   "sf-through-desert-4p": {
@@ -732,6 +742,7 @@ export const BOARD_TEMPLATES: Record<string, CatanBoardTemplate> = {
     ],
     horizontal: true,
     maxPipsOnHexTypes: { gold: 4 },
+    shufflePortTypes: true,
   },
 
   "sf-forgotten-tribe": {
@@ -811,6 +822,7 @@ export const BOARD_TEMPLATES: Record<string, CatanBoardTemplate> = {
       ],
     ],
     horizontal: true,
+    shufflePortTypes: true,
   },
 
   "sf-cloth-for-catan": {
@@ -882,6 +894,7 @@ export const BOARD_TEMPLATES: Record<string, CatanBoardTemplate> = {
       ],
     ],
     horizontal: true,
+    shufflePortTypes: true,
   },
 
   "sf-pirate-islands": {
@@ -1033,6 +1046,7 @@ export const BOARD_TEMPLATES: Record<string, CatanBoardTemplate> = {
     ],
     horizontal: true,
     fixNumbersInGroups: [2],
+    shufflePortTypes: true,
   },
 
   "sf-new-world": {

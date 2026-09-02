@@ -68,6 +68,7 @@ export function buildBoard(template: CatanBoardTemplate): CatanBoard {
     maxPipsOnHexTypes: template.maxPipsOnHexTypes,
     maxPipsOnChits,
     fixNumbersInGroups: resolveFixedGroups(template, flat),
+    shufflePortTypes: template.shufflePortTypes,
     facedownStack: template.facedownStack,
   };
 }

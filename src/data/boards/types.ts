@@ -204,6 +204,12 @@ export interface CatanBoardTemplate {
   minPipsOnHexTypes?: MinPipsOnHexTypes;
   maxPipsOnHexTypes?: MaxPipsOnHexTypes;
   fixNumbersInGroups?: FixNumbersInGroup[];
+  /**
+   * Whether the rule book's setup shuffles the harbors among their printed locations. The
+   * locations themselves never move; only which port sits in each. Off by default, for the
+   * scenarios whose setup is "as shown" with no port step.
+   */
+  shufflePortTypes?: boolean;
   /** See {@link FacedownStack}. Only the Fog Islands scenarios have one. */
   facedownStack?: FacedownStack;
 }
@@ -229,5 +235,6 @@ export interface CatanBoard {
   /** Indexed by hex position, never by hex. See {@link MaxPipsOnChit}. */
   maxPipsOnChits: MaxPipsOnChit[];
   fixNumbersInGroups?: FixNumbersInGroupStrict[];
+  shufflePortTypes?: boolean;
   facedownStack?: FacedownStack;
 }
