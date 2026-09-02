@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 230.94" width="200" height="230.94">
+  <defs>
+    <clipPath id="clip-hills"><path d="M100 0 L200 57.73502691896258 L200 173.20508075688775 L100 230.94010767585033 L0 173.20508075688775 L0 57.73502691896258 Z"/></clipPath>
+  <linearGradient id="sheen-hills" x1="0.15" y1="0" x2="0.85" y2="1">
+    <stop offset="0" stop-color="#fff" stop-opacity="0.18"/>
+    <stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+    <stop offset="1" stop-color="#000" stop-opacity="0.16"/>
+  </linearGradient>
+  </defs>
+  <g clip-path="url(#clip-hills)">
+    <rect width="200" height="230.94" fill="#c3552f"/>
+    <path d="M-6 50.81 Q100 26.81 206 50.81 V230.94 H-6 Z" fill="#8f3819" opacity="0.3"/><path d="M-6 94.69 Q100 70.69 206 94.69 V230.94 H-6 Z" fill="#8f3819" opacity="0.3"/><path d="M-6 138.56 Q100 114.56 206 138.56 V230.94 H-6 Z" fill="#8f3819" opacity="0.3"/><path d="M-6 182.44 Q100 158.44 206 182.44 V230.94 H-6 Z" fill="#8f3819" opacity="0.3"/><rect x="21.84" y="44.24" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="21.84" y="44.24" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="50.84" y="44.24" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="50.84" y="44.24" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="34.84" y="59.24" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="34.84" y="59.24" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="63.84" y="59.24" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="63.84" y="59.24" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="83.25" y="36.35" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="83.25" y="36.35" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="112.25" y="36.35" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="112.25" y="36.35" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="96.25" y="51.35" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="96.25" y="51.35" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="125.25" y="51.35" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="125.25" y="51.35" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="122.38" y="151.37" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="122.38" y="151.37" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="151.38" y="151.37" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="151.38" y="151.37" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="135.38" y="166.37" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="135.38" y="166.37" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="164.38" y="166.37" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="164.38" y="166.37" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="26.16" y="167.3" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="26.16" y="167.3" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="55.16" y="167.3" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="55.16" y="167.3" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="39.16" y="182.3" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="39.16" y="182.3" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="68.16" y="182.3" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="68.16" y="182.3" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="21.56" y="115.59" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="21.56" y="115.59" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="50.56" y="115.59" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="50.56" y="115.59" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="34.56" y="130.59" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="34.56" y="130.59" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/><rect x="63.56" y="130.59" width="26" height="12" rx="2" fill="#6a2712"/>
+            <rect x="63.56" y="130.59" width="26" height="5.04" rx="2" fill="#e0855a" opacity="0.45"/>
+    <rect width="200" height="230.94" fill="url(#sheen-hills)"/>
+  </g>
+</svg>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 230.94" width="200" height="230.94">
+  <defs>
+    <clipPath id="clip-mountains"><path d="M100 0 L200 57.73502691896258 L200 173.20508075688775 L100 230.94010767585033 L0 173.20508075688775 L0 57.73502691896258 Z"/></clipPath>
+  <linearGradient id="sheen-mountains" x1="0.15" y1="0" x2="0.85" y2="1">
+    <stop offset="0" stop-color="#fff" stop-opacity="0.18"/>
+    <stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+    <stop offset="1" stop-color="#000" stop-opacity="0.16"/>
+  </linearGradient>
+  </defs>
+  <g clip-path="url(#clip-mountains)">
+    <rect width="200" height="230.94" fill="#767b83"/>
+    <path d="M52 78.52 L91 168.22 H13 Z" fill="#484d55"/>
+        <path d="M52 78.52 L91 168.22 H52 Z" fill="#a3a9b2" opacity="0.45"/>
+        <path d="M52 78.52 L64.87 101.92 q-4.68 -5.15 -8.42 0 q-4.45 4.68 -8.89 0 Z" fill="#eef1f5"/><path d="M148 69.28 L190 165.88 H106 Z" fill="#484d55"/>
+        <path d="M148 69.28 L190 165.88 H148 Z" fill="#a3a9b2" opacity="0.45"/>
+        <path d="M148 69.28 L161.86 94.48 q-5.04 -5.54 -9.07 0 q-4.79 5.04 -9.58 0 Z" fill="#eef1f5"/><path d="M100 36.95 L152 156.55 H48 Z" fill="#484d55"/>
+        <path d="M100 36.95 L152 156.55 H100 Z" fill="#a3a9b2" opacity="0.45"/>
+        <path d="M100 36.95 L117.16 68.15 q-6.24 -6.86 -11.23 0 q-5.93 6.24 -11.86 0 Z" fill="#eef1f5"/>
+    <rect width="200" height="230.94" fill="url(#sheen-mountains)"/>
+  </g>
+</svg>

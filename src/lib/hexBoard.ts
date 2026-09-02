@@ -1,5 +1,6 @@
-import type { CatanBoard, HexCell, HexType, PortType } from "../data/boards/types";
-import { PIPS_BY_NUMBER } from "../data/boards/types";
+import type { CatanBoard, Hex, HexType, Orientation, PortType } from "../data/boards/types";
+import { pipsForNumber } from "../data/boards/types";
+import { HEX_ART } from "../assets/hexes/index";
 
 const HEX_COLOR_VAR: Record<HexType, string> = {
   hills: "--color-brick",
@@ -36,87 +37,138 @@ const PORT_LABEL: Record<PortType, string> = {
   ore: "2:1 Ore",
 };
 
-const HEX_CLIP_PATH =
-  "polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)";
-
-function buildNumberChit(cell: HexCell): HTMLElement {
+function buildNumberChit(hex: Hex, uprightBy: number): HTMLElement {
   const chit = document.createElement("div");
   chit.className = "hex-chit";
-  if (cell.number === undefined) return chit;
+  chit.style.transform = `rotate(${uprightBy}deg)`;
+  if (hex.number === undefined) return chit;
 
-  const pips = PIPS_BY_NUMBER[cell.number];
-  const isHot = cell.number === 6 || cell.number === 8;
-  chit.classList.toggle("hex-chit--hot", isHot);
+  chit.classList.toggle("hex-chit--hot", hex.number === 6 || hex.number === 8);
 
   const value = document.createElement("span");
   value.className = "hex-chit__value";
   value.textContent =
-    cell.secondNumber !== undefined ? `${cell.number}/${cell.secondNumber}` : String(cell.number);
+    hex.secondNumber !== undefined ? `${hex.number}/${hex.secondNumber}` : String(hex.number);
   chit.appendChild(value);
 
   const dots = document.createElement("span");
   dots.className = "hex-chit__pips";
-  dots.textContent = "•".repeat(pips);
+  dots.textContent = "•".repeat(pipsForNumber(hex.number));
   chit.appendChild(dots);
 
   return chit;
 }
 
-function buildHexElement(cell: HexCell, index: number, neighborIsLand: boolean): HTMLElement {
-  const hex = document.createElement("div");
-  hex.className = "hex";
-  hex.dataset.hexIndex = String(index);
-  hex.style.clipPath = HEX_CLIP_PATH;
+/**
+ * A harbor is drawn as a full-hex overlay rotated so its dock sits on one specific edge.
+ * `orientation` is degrees clockwise from west-facing, so the dock is laid out against the
+ * west edge and the whole overlay is then turned. The label is turned back the other way,
+ * plus the board's own rotation, so it stays upright however the hex is oriented.
+ */
+function buildPort(type: PortType, orientation: Orientation, uprightBy: number): HTMLElement {
+  const port = document.createElement("div");
+  port.className = "hex-port";
+  port.style.transform = `rotate(${orientation}deg)`;
 
-  if (cell.hidden) {
-    hex.style.setProperty("--hex-color", "var(--color-fog)");
-    hex.title = "Unexplored";
-    const mark = document.createElement("span");
-    mark.className = "hex-chit__value";
-    mark.textContent = "?";
-    hex.appendChild(mark);
-    return hex;
-  }
+  // two piers running from the harbour out to the ends of the western edge, which is the
+  // edge orientation 0 points at; the whole overlay is then rotated onto the real edge
+  port.insertAdjacentHTML(
+    "beforeend",
+    `<svg class="hex-port__docks" viewBox="0 0 200 231" aria-hidden="true">
+       <path d="M58 92 L14 70 M58 139 L14 161" />
+       <circle cx="66" cy="115.5" r="13" />
+     </svg>`
+  );
 
-  hex.style.setProperty("--hex-color", `var(${HEX_COLOR_VAR[cell.type]})`);
-  hex.title = HEX_LABEL[cell.type];
+  const label = document.createElement("span");
+  label.className = "hex-port__label";
+  label.textContent = PORT_LABEL[type];
+  label.style.transform = `translate(-50%, -50%) rotate(${uprightBy - orientation}deg)`;
+  port.appendChild(label);
 
-  if (cell.type === "desert") {
+  return port;
+}
+
+const EDGE_ITEM_LABEL = { victoryPoint: "1 VP", developmentCard: "Dev" } as const;
+
+/** Edge tokens are placed like ports: laid out on the west edge, then rotated onto theirs. */
+function buildEdgeItem(item: NonNullable<Hex["edgeItems"]>[number], uprightBy: number) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "hex-edge-item";
+  wrapper.style.transform = `rotate(${item.orientation}deg)`;
+
+  const badge = document.createElement("span");
+  badge.className = `hex-edge-item__badge hex-edge-item__badge--${item.kind}`;
+  badge.textContent = EDGE_ITEM_LABEL[item.kind];
+  badge.title = item.kind === "victoryPoint" ? "Victory point token" : "Development card";
+  badge.style.transform = `translate(-50%, -50%) rotate(${uprightBy - item.orientation}deg)`;
+  wrapper.appendChild(badge);
+
+  return wrapper;
+}
+
+function buildHex(hex: Hex, index: number, showRobber: boolean, uprightBy: number): HTMLElement {
+  const element = document.createElement("div");
+  element.className = "hex";
+  element.dataset.hexIndex = String(index);
+  element.style.setProperty("--hex-color", `var(${HEX_COLOR_VAR[hex.type]})`);
+  element.style.setProperty("--hex-art", `url("${HEX_ART[hex.type]}")`);
+  if (hex.orientation) element.style.setProperty("--hex-spin", `${hex.orientation}deg`);
+  element.title = HEX_LABEL[hex.type];
+
+  if (showRobber) {
     const robber = document.createElement("div");
     robber.className = "hex-robber";
     robber.title = "Robber";
-    hex.appendChild(robber);
+    element.appendChild(robber);
   }
 
-  if (cell.number !== undefined) {
-    hex.appendChild(buildNumberChit(cell));
+  if (hex.type === "fog") {
+    // the host turns these over at the table, so mark them rather than dealing them out
+    const unknown = document.createElement("span");
+    unknown.className = "hex-unknown";
+    unknown.textContent = "?";
+    unknown.title = "Unknown - taken from the facedown stack";
+    unknown.style.transform = `rotate(${uprightBy}deg)`;
+    element.appendChild(unknown);
   }
 
-  if (cell.port) {
-    const port = document.createElement("div");
-    port.className = "hex-port";
-    port.textContent = PORT_LABEL[cell.port.type];
-    hex.appendChild(port);
-  } else if (!neighborIsLand && cell.type === "sea") {
-    hex.classList.add("hex--open-water");
+  if (hex.number !== undefined) element.appendChild(buildNumberChit(hex, uprightBy));
+  for (const item of hex.edgeItems ?? []) {
+    element.classList.add("hex--has-port");
+    element.appendChild(buildEdgeItem(item, uprightBy));
   }
 
-  return hex;
+  if (hex.port) {
+    element.classList.add("hex--has-port");
+    element.appendChild(buildPort(hex.port.type, hex.port.orientation, uprightBy));
+  }
+
+  return element;
 }
 
-export function renderHexBoard(container: HTMLElement, board: CatanBoard): void {
+export function renderHexBoard(container: HTMLElement, board: CatanBoard, hexes: Hex[]): void {
   container.innerHTML = "";
-  container.className = "hex-board";
-  container.style.gridTemplateColumns = board.cssGridTemplateColumns;
-  container.style.gridTemplateRows = board.cssGridTemplateRows;
-  container.style.aspectRatio = String(board.aspectRatio);
+  container.className = "hex-board-frame";
 
-  board.cells.forEach((cell, index) => {
-    const touchesLand = Object.values(board.neighbors[index]).some(
-      (n) => board.cells[n].type !== "sea"
-    );
-    const hex = buildHexElement(cell, index, touchesLand);
-    hex.style.gridArea = board.cssGridAreas[index];
-    container.appendChild(hex);
+  const grid = document.createElement("div");
+  grid.className = "hex-board";
+  grid.style.gridTemplateColumns = board.cssGridTemplateColumns;
+  grid.style.gridTemplateRows = board.cssGridTemplateRows;
+  grid.style.width = board.boardWidthPercentage ?? "100%";
+  grid.style.height = board.boardHeightPercentage ?? "100%";
+  // Seafarers maps are printed rotated relative to the way they are written down
+  const boardRotation = board.horizontal ? 90 : 0;
+  if (boardRotation) grid.style.transform = `rotate(${boardRotation}deg)`;
+
+  // scenarios can have several deserts but there is only ever one robber
+  const robberIndex = hexes.findIndex((hex) => hex.type === "desert");
+
+  hexes.forEach((hex, index) => {
+    const element = buildHex(hex, index, index === robberIndex, -boardRotation);
+    element.style.gridArea = board.cssGridAreas[index];
+    grid.appendChild(element);
   });
+
+  container.appendChild(grid);
 }

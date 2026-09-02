@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 230.94" width="200" height="230.94">
+  <defs>
+    <clipPath id="clip-forest"><path d="M100 0 L200 57.73502691896258 L200 173.20508075688775 L100 230.94010767585033 L0 173.20508075688775 L0 57.73502691896258 Z"/></clipPath>
+  <linearGradient id="sheen-forest" x1="0.15" y1="0" x2="0.85" y2="1">
+    <stop offset="0" stop-color="#fff" stop-opacity="0.18"/>
+    <stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+    <stop offset="1" stop-color="#000" stop-opacity="0.16"/>
+  </linearGradient>
+  </defs>
+  <g clip-path="url(#clip-forest)">
+    <rect width="200" height="230.94" fill="#3f7038"/>
+    <path d="M-6 152.42 Q100 127.02 206 161.66 V230.94 H-6 Z" fill="#26461f" opacity="0.5"/><g transform="translate(114.45 46.97) scale(2.3)">
+        <rect x="-3" y="4" width="6" height="12" rx="1.5" fill="#33281a"/>
+        <path d="M0 -22 L13 2 H-13 Z" fill="#26461f"/>
+        <path d="M0 -22 L13 2 H0 Z" fill="#5f9a4c" opacity="0.5"/>
+        <path d="M0 -13 L15 8 H-15 Z" fill="#26461f"/>
+        <path d="M0 -13 L15 8 H0 Z" fill="#5f9a4c" opacity="0.42"/>
+      </g><g transform="translate(46 78.91) scale(2.04)">
+        <rect x="-3" y="4" width="6" height="12" rx="1.5" fill="#33281a"/>
+        <path d="M0 -22 L13 2 H-13 Z" fill="#26461f"/>
+        <path d="M0 -22 L13 2 H0 Z" fill="#5f9a4c" opacity="0.5"/>
+        <path d="M0 -13 L15 8 H-15 Z" fill="#26461f"/>
+        <path d="M0 -13 L15 8 H0 Z" fill="#5f9a4c" opacity="0.42"/>
+      </g><g transform="translate(145.38 101.61) scale(2.32)">
+        <rect x="-3" y="4" width="6" height="12" rx="1.5" fill="#33281a"/>
+        <path d="M0 -22 L13 2 H-13 Z" fill="#26461f"/>
+        <path d="M0 -22 L13 2 H0 Z" fill="#5f9a4c" opacity="0.5"/>
+        <path d="M0 -13 L15 8 H-15 Z" fill="#26461f"/>
+        <path d="M0 -13 L15 8 H0 Z" fill="#5f9a4c" opacity="0.42"/>
+      </g><g transform="translate(51.7 131.93) scale(1.83)">
+        <rect x="-3" y="4" width="6" height="12" rx="1.5" fill="#33281a"/>
+        <path d="M0 -22 L13 2 H-13 Z" fill="#26461f"/>
+        <path d="M0 -22 L13 2 H0 Z" fill="#5f9a4c" opacity="0.5"/>
+        <path d="M0 -13 L15 8 H-15 Z" fill="#26461f"/>
+        <path d="M0 -13 L15 8 H0 Z" fill="#5f9a4c" opacity="0.42"/>
+      </g><g transform="translate(115.89 163.27) scale(2.39)">
+        <rect x="-3" y="4" width="6" height="12" rx="1.5" fill="#33281a"/>
+        <path d="M0 -22 L13 2 H-13 Z" fill="#26461f"/>
+        <path d="M0 -22 L13 2 H0 Z" fill="#5f9a4c" opacity="0.5"/>
+        <path d="M0 -13 L15 8 H-15 Z" fill="#26461f"/>
+        <path d="M0 -13 L15 8 H0 Z" fill="#5f9a4c" opacity="0.42"/>
+      </g><g transform="translate(70.84 177.74) scale(1.99)">
+        <rect x="-3" y="4" width="6" height="12" rx="1.5" fill="#33281a"/>
+        <path d="M0 -22 L13 2 H-13 Z" fill="#26461f"/>
+        <path d="M0 -22 L13 2 H0 Z" fill="#5f9a4c" opacity="0.5"/>
+        <path d="M0 -13 L15 8 H-15 Z" fill="#26461f"/>
+        <path d="M0 -13 L15 8 H0 Z" fill="#5f9a4c" opacity="0.42"/>
+      </g>
+    <rect width="200" height="230.94" fill="url(#sheen-forest)"/>
+  </g>
+</svg>

@@ -60,4 +60,28 @@ export function renderNav(activePage: NavPage): void {
 
   const toggle = nav.querySelector<HTMLButtonElement>(".theme-toggle");
   if (toggle) initThemeToggle(toggle);
+
+  renderFooter();
+}
+
+/**
+ * Every page calls renderNav, so the footer is rendered from here too. It carries the
+ * trademark disclaimer: this is a fan-made reference, and the name has to make that plain.
+ */
+function renderFooter(): void {
+  if (document.querySelector(".site-footer")) return;
+
+  const footer = document.createElement("footer");
+  footer.className = "site-footer";
+  footer.innerHTML = `
+    <div class="site-footer__inner">
+      <p>
+        <strong>Catan Companion</strong> is a fan-made reference, not affiliated with,
+        endorsed by, or sponsored by CATAN GmbH or CATAN Studio. CATAN is a trademark of
+        CATAN GmbH. Board layouts and component counts are taken from the published rule
+        books.
+      </p>
+    </div>
+  `;
+  document.body.appendChild(footer);
 }

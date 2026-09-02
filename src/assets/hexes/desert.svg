@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 230.94" width="200" height="230.94">
+  <defs>
+    <clipPath id="clip-desert"><path d="M100 0 L200 57.73502691896258 L200 173.20508075688775 L100 230.94010767585033 L0 173.20508075688775 L0 57.73502691896258 Z"/></clipPath>
+  <linearGradient id="sheen-desert" x1="0.15" y1="0" x2="0.85" y2="1">
+    <stop offset="0" stop-color="#fff" stop-opacity="0.18"/>
+    <stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+    <stop offset="1" stop-color="#000" stop-opacity="0.16"/>
+  </linearGradient>
+  </defs>
+  <g clip-path="url(#clip-desert)">
+    <rect width="200" height="230.94" fill="#e0bd7c"/>
+    <path d="M-6 64.66 Q68 34.66 136 60.66 T206 48.66 V230.94 H-6 Z" fill="#bd9350" opacity="0.3"/><path d="M-6 64.66 Q68 34.66 136 60.66 T206 48.66" stroke="#f5dfae" stroke-width="4" fill="none" opacity="0.5"/><path d="M-6 106.23 Q68 76.23 136 102.23 T206 90.23 V230.94 H-6 Z" fill="#bd9350" opacity="0.3"/><path d="M-6 106.23 Q68 76.23 136 102.23 T206 90.23" stroke="#f5dfae" stroke-width="4" fill="none" opacity="0.5"/><path d="M-6 147.8 Q68 117.8 136 143.8 T206 131.8 V230.94 H-6 Z" fill="#bd9350" opacity="0.3"/><path d="M-6 147.8 Q68 117.8 136 143.8 T206 131.8" stroke="#f5dfae" stroke-width="4" fill="none" opacity="0.5"/><path d="M-6 189.37 Q68 159.37 136 185.37 T206 173.37 V230.94 H-6 Z" fill="#bd9350" opacity="0.3"/><path d="M-6 189.37 Q68 159.37 136 185.37 T206 173.37" stroke="#f5dfae" stroke-width="4" fill="none" opacity="0.5"/><path d="M92.29 176.38 q14 -10.79 28 0" stroke="#9c7740" stroke-width="3.4" fill="none" opacity="0.5" stroke-linecap="round"/><path d="M80.06 48.99 q14 -12.26 28 0" stroke="#9c7740" stroke-width="3.4" fill="none" opacity="0.5" stroke-linecap="round"/><path d="M135.04 79.45 q14 -12.78 28 0" stroke="#9c7740" stroke-width="3.4" fill="none" opacity="0.5" stroke-linecap="round"/><path d="M48.5 181.07 q14 -8.52 28 0" stroke="#9c7740" stroke-width="3.4" fill="none" opacity="0.5" stroke-linecap="round"/><path d="M132.98 153.24 q14 -8.53 28 0" stroke="#9c7740" stroke-width="3.4" fill="none" opacity="0.5" stroke-linecap="round"/>
+    <rect width="200" height="230.94" fill="url(#sheen-desert)"/>
+  </g>
+</svg>

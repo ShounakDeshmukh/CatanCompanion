@@ -28,38 +28,151 @@
 
 .cost-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 1.1rem;
+}
+
+/*
+ * Cost cards are physical cards, so they keep a cream face in either theme rather than
+ * following the page palette. The stripe down the left says which box the card comes from.
+ */
+.cost-card {
+  --card-face: #f6ecd4;
+  --card-ink: #2b2118;
+  --card-accent: var(--color-wheat);
+  position: relative;
+  background:
+    linear-gradient(150deg, #fffaf0 0%, var(--card-face) 55%, #e8dabb 100%);
+  border: 1px solid #b9a480;
+  border-left: 5px solid var(--card-accent);
+  border-radius: 10px;
+  padding: 0.85rem 0.95rem 0.95rem;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+  color: var(--card-ink);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.cost-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgb(0 0 0 / 0.42);
+}
+
+.cost-card--base { --card-accent: #c3552f; }
+.cost-card--seafarers { --card-accent: #3a6ea5; }
+.cost-card--citiesKnights { --card-accent: #8b6f9e; }
+
+.cost-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .cost-card__label {
-  font-weight: 600;
-  margin-bottom: 0.3rem;
+  font-family: var(--font-heading);
+  font-size: 1.02rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--card-ink);
+}
+
+.cost-card__tag {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6d5c44;
+  white-space: nowrap;
 }
 
 .cost-card__note {
-  color: var(--color-text-muted);
-  font-size: 0.85rem;
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: #6d5c44;
+}
+
+.token-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.75rem;
+}
+
+.token-row--inline {
+  display: inline-flex;
+  margin: 0;
+  gap: 0.15rem;
+}
+
+.token {
+  width: 30px;
+  height: 30px;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.3));
+}
+
+.token--small {
+  width: 16px;
+  height: 16px;
+}
+
+.token--head {
+  width: 38px;
+  height: 38px;
+}
+
+.improvement-track {
+  background: linear-gradient(150deg, #fffaf0 0%, #f6ecd4 55%, #e8dabb 100%);
+  border: 1px solid #b9a480;
+  border-top: 5px solid var(--track-color);
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+  color: #2b2118;
+}
+
+.improvement-track__head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   margin-bottom: 0.6rem;
 }
 
-.pip-row {
-  display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
+.improvement-track h3 {
+  margin: 0;
+  font-size: 1.05rem;
 }
 
-.pip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  background: var(--pip-color);
-  color: #fff;
-  border-radius: 999px;
-  padding: 0.15rem 0.6rem;
-  font-size: 0.85rem;
+.improvement-track__commodity {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6d5c44;
+}
+
+.improvement-level {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.6rem;
+  align-items: start;
+  padding: 0.45rem 0;
+  border-top: 1px solid rgb(0 0 0 / 0.1);
+}
+
+.improvement-level__cost {
+  /* wide enough for the five-token row so every name lines up */
+  min-width: 96px;
+}
+
+.improvement-level__name {
+  display: block;
   font-weight: 600;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+  font-size: 0.9rem;
+}
+
+.improvement-level__ability {
+  display: block;
+  font-size: 0.76rem;
+  color: #6d5c44;
+  margin-top: 0.15rem;
 }
 
 .improvement-tracks {

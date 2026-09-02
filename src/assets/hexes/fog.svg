@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 230.94" width="200" height="230.94">
+  <defs>
+    <clipPath id="clip-fog"><path d="M100 0 L200 57.73502691896258 L200 173.20508075688775 L100 230.94010767585033 L0 173.20508075688775 L0 57.73502691896258 Z"/></clipPath>
+  <linearGradient id="sheen-fog" x1="0.15" y1="0" x2="0.85" y2="1">
+    <stop offset="0" stop-color="#fff" stop-opacity="0.18"/>
+    <stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+    <stop offset="1" stop-color="#000" stop-opacity="0.16"/>
+  </linearGradient>
+  </defs>
+  <g clip-path="url(#clip-fog)">
+    <rect width="200" height="230.94" fill="#a9a08d"/>
+    <path d="M-14 55.43 q60 -18 110 0 t124 0" stroke="#eae5da" stroke-width="12" fill="none" opacity="0.28" stroke-linecap="round"/><path d="M-14 96.99 q60 -18 110 0 t124 0" stroke="#eae5da" stroke-width="15" fill="none" opacity="0.28" stroke-linecap="round"/><path d="M-14 138.56 q60 -18 110 0 t124 0" stroke="#eae5da" stroke-width="18" fill="none" opacity="0.28" stroke-linecap="round"/><path d="M-14 180.13 q60 -18 110 0 t124 0" stroke="#eae5da" stroke-width="21" fill="none" opacity="0.28" stroke-linecap="round"/>
+    <rect width="200" height="230.94" fill="url(#sheen-fog)"/>
+  </g>
+</svg>

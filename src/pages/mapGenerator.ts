@@ -3,45 +3,94 @@ import "../styles/board.css";
 import { renderNav } from "../lib/nav";
 import { BOARD_REGISTRY, getBoardEntry } from "../data/boards/registry";
 import { buildBoard } from "../lib/boardFactory";
-import { generateBoard, randomSeed, UnsatisfiableConstraintsError } from "../lib/shuffle";
+import {
+  generateBoard,
+  randomSeed,
+  UnsatisfiableConstraintsError,
+  type ShuffleConstraints,
+} from "../lib/shuffle";
 import { renderHexBoard } from "../lib/hexBoard";
+import { renderFacedownStack } from "../lib/facedownStack";
 import { decodeShareHash, encodeShareHash } from "../lib/shareLink";
 
 renderNav("map-generator");
 
 const boardSelect = document.getElementById("board-select") as HTMLSelectElement;
-const no6and8Checkbox = document.getElementById("no-6-8-adjacent") as HTMLInputElement;
-const noSameCheckbox = document.getElementById("no-same-adjacent") as HTMLInputElement;
+const byId = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+
+const no68 = byId<HTMLInputElement>("no-6-8-adjacent");
+const no212 = byId<HTMLInputElement>("no-2-12-adjacent");
+const noPairs = byId<HTMLInputElement>("no-same-adjacent");
+const maxTerrain = byId<HTMLSelectElement>("max-connected-terrain");
+const maxPips = byId<HTMLSelectElement>("max-intersection-pips");
+const minIslands = byId<HTMLSelectElement>("min-island-count");
+const minIslandsField = byId<HTMLLabelElement>("min-islands-field");
+
+const CONSTRAINT_INPUTS = [no68, no212, noPairs, maxTerrain, maxPips, minIslands];
+
+function readConstraints(): ShuffleConstraints {
+  return {
+    noAdjacentSixEight: no68.checked,
+    noAdjacentTwoTwelve: no212.checked,
+    noAdjacentPairs: noPairs.checked,
+    maxConnectedLikeTerrain: Number(maxTerrain.value),
+    maxIntersectionPipCount: Number(maxPips.value),
+    minIslandCount: Number(minIslands.value),
+  };
+}
+
+function writeConstraints(c: ShuffleConstraints): void {
+  no68.checked = c.noAdjacentSixEight;
+  no212.checked = c.noAdjacentTwoTwelve;
+  noPairs.checked = c.noAdjacentPairs;
+  maxTerrain.value = String(c.maxConnectedLikeTerrain);
+  maxPips.value = String(c.maxIntersectionPipCount);
+  minIslands.value = String(c.minIslandCount);
+}
 const form = document.getElementById("map-controls") as HTMLFormElement;
-const shareUrlInput = document.getElementById("share-url") as HTMLInputElement;
-const copyLinkButton = document.getElementById("copy-link") as HTMLButtonElement;
-const printButton = document.getElementById("print-board") as HTMLButtonElement;
 const root = document.getElementById("map-generator-root") as HTMLElement;
 
+// 26 boards is too many for a flat list, so group them the way the boxes are sold
+const groups = new Map<string, HTMLOptGroupElement>();
 for (const entry of BOARD_REGISTRY) {
+  let group = groups.get(entry.group);
+  if (!group) {
+    group = document.createElement("optgroup");
+    group.label = entry.group;
+    groups.set(entry.group, group);
+    boardSelect.appendChild(group);
+  }
   const option = document.createElement("option");
   option.value = entry.id;
   option.textContent = entry.label;
-  boardSelect.appendChild(option);
+  group.appendChild(option);
 }
 
 function generateAndRender(boardId: string, seed: number): void {
   const entry = getBoardEntry(boardId);
   if (!entry) return;
 
-  const base = buildBoard(entry.template);
-  base.constraints = {
-    ...base.constraints,
-    no6and8Adjacent: no6and8Checkbox.checked || base.constraints?.no6and8Adjacent,
-    noSameNumberAdjacent: noSameCheckbox.checked || base.constraints?.noSameNumberAdjacent,
-  };
+  const board = buildBoard(entry.template);
+
+  // islands can only be counted differently on boards whose sea hexes are allowed to move,
+  // so the control is pointless anywhere else
+  const islandsMoveable = board.recommendedLayout.some(
+    (hex) => hex.type === "sea" && !hex.fixed
+  );
+  minIslandsField.classList.toggle("map-chip--disabled", !islandsMoveable);
+  minIslands.disabled = !islandsMoveable;
+  if (!islandsMoveable) minIslands.value = "1";
+
+  const constraints = readConstraints();
 
   try {
-    const { board, seed: usedSeed } = generateBoard(base, seed);
-    renderHexBoard(root, board);
-    const hash = encodeShareHash({ boardId, seed: usedSeed });
-    history.replaceState(null, "", hash);
-    shareUrlInput.value = `${window.location.origin}${window.location.pathname}${hash}`;
+    const { hexes, seed: usedSeed } = generateBoard(board, constraints, seed);
+    root.innerHTML = "";
+    const boardHost = document.createElement("div");
+    root.appendChild(boardHost);
+    renderHexBoard(boardHost, board, hexes);
+    if (board.facedownStack) root.appendChild(renderFacedownStack(board.facedownStack));
+    history.replaceState(null, "", encodeShareHash({ boardId, seed: usedSeed, constraints }));
   } catch (error) {
     if (error instanceof UnsatisfiableConstraintsError) {
       root.innerHTML = `<p class="card">${error.message}</p>`;
@@ -51,21 +100,27 @@ function generateAndRender(boardId: string, seed: number): void {
   }
 }
 
+const reshuffle = () => generateAndRender(boardSelect.value, randomSeed());
+
+// picking a board draws it straight away; there is nothing else the button could be for
+boardSelect.addEventListener("change", reshuffle);
 form.addEventListener("submit", (event) => {
   event.preventDefault();
-  generateAndRender(boardSelect.value, randomSeed());
+  reshuffle();
 });
 
-copyLinkButton.addEventListener("click", () => {
-  navigator.clipboard.writeText(shareUrlInput.value).then(() => {
-    copyLinkButton.textContent = "Copied!";
-    setTimeout(() => (copyLinkButton.textContent = "Copy link"), 1500);
+// a constraint change re-runs the same seed, so you can see what that setting did rather
+// than being handed an unrelated board
+for (const input of CONSTRAINT_INPUTS) {
+  input.addEventListener("change", () => {
+    const current = decodeShareHash(window.location.hash);
+    generateAndRender(boardSelect.value, current?.seed ?? randomSeed());
   });
-});
-
-printButton.addEventListener("click", () => window.print());
+}
 
 const shared = decodeShareHash(window.location.hash);
-const initialBoardId = shared && getBoardEntry(shared.boardId) ? shared.boardId : BOARD_REGISTRY[0].id;
-boardSelect.value = initialBoardId;
-generateAndRender(initialBoardId, shared?.seed ?? randomSeed());
+if (shared && getBoardEntry(shared.boardId)) {
+  boardSelect.value = shared.boardId;
+  writeConstraints(shared.constraints);
+}
+generateAndRender(boardSelect.value || BOARD_REGISTRY[0].id, shared?.seed ?? randomSeed());

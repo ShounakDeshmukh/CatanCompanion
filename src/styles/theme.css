@@ -159,6 +159,7 @@ select {
 }
 
 .btn {
+  text-decoration: none;
   background: var(--color-accent);
   color: var(--color-accent-text);
   border: none;
@@ -176,4 +177,41 @@ select {
   background: transparent;
   color: var(--color-text);
   border: 1px solid var(--color-border);
+}
+
+.site-footer {
+  margin-top: 3rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-raised);
+}
+
+.site-footer__inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.4rem 1.25rem 1.8rem;
+}
+
+.site-footer p {
+  margin: 0;
+  max-width: 58em;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+@media print {
+  .site-footer {
+    display: none;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
