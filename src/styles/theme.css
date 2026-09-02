@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,500&display=swap");
 
 :root {
   --color-bg: #f4e9d2;
@@ -18,12 +18,12 @@
   --color-desert: #dcb877;
   --color-gold: #e0a83e;
   --color-fog: #a9a08d;
-  --color-paper: #7a9e7e;
-  --color-cloth: #8b6f9e;
-  --color-coin: #c9a227;
+  --color-paper: #4f9153;
+  --color-cloth: #d9ab2e;
+  --color-coin: #2f97a8;
 
-  --font-heading: "Fraunces", Georgia, "Times New Roman", serif;
-  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-heading: "Cinzel", Georgia, "Times New Roman", serif;
+  --font-body: "Crimson Pro", Georgia, "Times New Roman", serif;
 
   --radius: 10px;
   --shadow: 0 2px 6px rgba(59, 42, 26, 0.18);

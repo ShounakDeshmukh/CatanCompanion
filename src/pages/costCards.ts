@@ -4,11 +4,10 @@ import { renderNav } from "../lib/nav";
 import {
   BUILDING_COSTS,
   IMPROVEMENT_TRACKS,
-  type Commodity,
   type Expansion,
   type ResourceCost,
 } from "../data/costs";
-import { COMMODITY_ICON, RESOURCE_ICON } from "../assets/icons/index";
+import { BUILDING_ICON_SVG, COMMODITY_ICON_SVG, RESOURCE_ICON_SVG } from "../assets/customIcons";
 
 renderNav("cost-cards");
 
@@ -32,6 +31,39 @@ const EXPANSION_LABEL: Record<Expansion, string> = {
   citiesKnights: "Cities & Knights",
 };
 
+/**
+ * Cost chip icon, colored via the --chip-color custom property. Pass colorVar to tint it
+ * directly (building-cost rows mix several resources per row); omit it inside an
+ * improvement-track card, where every chip shares the ancestor card's --track-color.
+ */
+function buildCostChip(svgMarkup: string, label: string, amount: number, colorVar?: string): HTMLElement {
+  const chip = document.createElement("span");
+  chip.className = "cost-chip";
+  chip.title = `${amount} ${label}`;
+  const icon = document.createElement("span");
+  icon.className = "cost-chip__icon";
+  if (colorVar) icon.style.setProperty("--chip-color", `var(${colorVar})`);
+  icon.innerHTML = svgMarkup;
+  const qty = document.createElement("span");
+  qty.className = "cost-chip__qty";
+  qty.textContent = String(amount);
+  chip.append(icon, qty);
+  return chip;
+}
+
+/** One chip per resource type (with a quantity), the way a real reference card prints it. */
+function buildCostChips(cost: ResourceCost): HTMLElement {
+  const wrap = document.createElement("div");
+  wrap.className = "building-row__costs";
+  for (const [resource, amount] of Object.entries(cost) as [keyof ResourceCost, number][]) {
+    if (!amount) continue;
+    wrap.appendChild(
+      buildCostChip(RESOURCE_ICON_SVG[resource], RESOURCE_LABEL[resource], amount, `--color-${resource}`)
+    );
+  }
+  return wrap;
+}
+
 const toggles = document.getElementById("expansion-toggles") as HTMLFormElement;
 const root = document.getElementById("cost-cards-root") as HTMLElement;
 
@@ -40,34 +72,65 @@ function activeExpansions(): Set<Expansion> {
   return new Set(Array.from(checked).map((input) => input.value as Expansion));
 }
 
-/** One token per unit, the way the cost is printed on a real card. */
-function buildTokenRow(cost: ResourceCost): HTMLElement {
+function buildBuildingRow(item: (typeof BUILDING_COSTS)[number]): HTMLElement {
   const row = document.createElement("div");
-  row.className = "token-row";
-  for (const [resource, amount] of Object.entries(cost) as [keyof ResourceCost, number][]) {
-    for (let i = 0; i < amount; i++) {
-      const token = document.createElement("img");
-      token.className = "token";
-      token.src = RESOURCE_ICON[resource];
-      token.alt = i === 0 ? `${amount} ${RESOURCE_LABEL[resource]}` : "";
-      token.title = `${amount} ${RESOURCE_LABEL[resource]}`;
-      row.appendChild(token);
-    }
+  row.className = "building-row";
+
+  const icon = document.createElement("div");
+  icon.className = "building-row__icon";
+  icon.innerHTML = BUILDING_ICON_SVG[item.id] ?? "";
+  row.appendChild(icon);
+
+  const body = document.createElement("div");
+  body.className = "building-row__body";
+  const name = document.createElement("div");
+  name.className = "building-row__name";
+  name.textContent = item.label;
+  body.appendChild(name);
+  if (item.note) {
+    const note = document.createElement("div");
+    note.className = "building-row__note";
+    note.textContent = item.note;
+    body.appendChild(note);
   }
+  row.appendChild(body);
+  row.appendChild(buildCostChips(item.cost));
   return row;
 }
 
-function buildCommodityRow(commodity: Commodity, amount: number): HTMLElement {
-  const row = document.createElement("span");
-  row.className = "token-row token-row--inline";
-  for (let i = 0; i < amount; i++) {
-    const token = document.createElement("img");
-    token.className = "token token--small";
-    token.src = COMMODITY_ICON[commodity];
-    token.alt = i === 0 ? `${amount} ${commodity}` : "";
-    row.appendChild(token);
+function buildTrackCard(track: (typeof IMPROVEMENT_TRACKS)[number]): HTMLElement {
+  const card = document.createElement("div");
+  card.className = "reference-card";
+  card.style.setProperty("--track-color", `var(${TRACK_COLOR_VAR[track.id]})`);
+
+  const inner = document.createElement("div");
+  inner.className = "reference-card__inner";
+
+  const header = document.createElement("div");
+  header.className = "track-header";
+  header.innerHTML = `
+    <span class="track-header__badge">${COMMODITY_ICON_SVG[track.commodity]}</span>
+    <span>
+      <span class="track-header__name">${track.name}</span>
+      <span class="track-header__commodity">Paid in ${track.commodity}</span>
+    </span>
+  `;
+  inner.appendChild(header);
+
+  for (const lvl of track.levels) {
+    const row = document.createElement("div");
+    row.className = "level-row";
+    row.appendChild(buildCostChip(COMMODITY_ICON_SVG[track.commodity], track.commodity, lvl.cost));
+    const body = document.createElement("span");
+    body.innerHTML = `<span class="level-row__name">${lvl.name}</span>${
+      lvl.ability ? `<span class="level-row__ability">${lvl.ability}</span>` : ""
+    }`;
+    row.appendChild(body);
+    inner.appendChild(row);
   }
-  return row;
+
+  card.appendChild(inner);
+  return card;
 }
 
 function render(): void {
@@ -77,25 +140,32 @@ function render(): void {
   const buildingSection = document.createElement("section");
   buildingSection.className = "cost-section";
   buildingSection.innerHTML = "<h2>Building Costs</h2>";
-  const grid = document.createElement("div");
-  grid.className = "cost-grid";
 
+  const card = document.createElement("div");
+  card.className = "reference-card reference-card--main";
+  const inner = document.createElement("div");
+  inner.className = "reference-card__inner";
+  card.appendChild(inner);
+
+  let lastExpansion: Expansion | null = null;
+  let rowCount = 0;
   for (const item of BUILDING_COSTS) {
     if (!active.has(item.expansion)) continue;
-    const card = document.createElement("article");
-    card.className = `cost-card cost-card--${item.expansion}`;
-    card.innerHTML = `
-      <header class="cost-card__head">
-        <h3 class="cost-card__label">${item.label}</h3>
-        <span class="cost-card__tag">${EXPANSION_LABEL[item.expansion]}</span>
-      </header>
-      ${item.note ? `<p class="cost-card__note">${item.note}</p>` : ""}
-    `;
-    card.appendChild(buildTokenRow(item.cost));
-    grid.appendChild(card);
+    if (item.expansion !== lastExpansion && item.expansion !== "base") {
+      const label = document.createElement("div");
+      label.className = "expansion-label";
+      label.textContent = EXPANSION_LABEL[item.expansion];
+      inner.appendChild(label);
+    }
+    lastExpansion = item.expansion;
+    inner.appendChild(buildBuildingRow(item));
+    rowCount++;
   }
-  buildingSection.appendChild(grid);
-  root.appendChild(buildingSection);
+
+  if (rowCount > 0) {
+    buildingSection.appendChild(card);
+    root.appendChild(buildingSection);
+  }
 
   if (active.has("citiesKnights")) {
     const trackSection = document.createElement("section");
@@ -103,41 +173,14 @@ function render(): void {
     trackSection.innerHTML = "<h2>City Improvements</h2>";
     const tracks = document.createElement("div");
     tracks.className = "improvement-tracks";
-
     for (const track of IMPROVEMENT_TRACKS) {
-      const trackEl = document.createElement("div");
-      trackEl.className = "improvement-track";
-      trackEl.style.setProperty("--track-color", `var(${TRACK_COLOR_VAR[track.id]})`);
-      trackEl.innerHTML = `
-        <header class="improvement-track__head">
-          <img class="token token--head" src="${COMMODITY_ICON[track.commodity]}" alt="" />
-          <div>
-            <h3>${track.name}</h3>
-            <div class="improvement-track__commodity">Paid in ${track.commodity}</div>
-          </div>
-        </header>
-      `;
-      for (const lvl of track.levels) {
-        const row = document.createElement("div");
-        row.className = "improvement-level";
-        const cost = document.createElement("span");
-        cost.className = "improvement-level__cost";
-        cost.appendChild(buildCommodityRow(track.commodity, lvl.cost));
-        row.appendChild(cost);
-        const body = document.createElement("span");
-        body.innerHTML = `<span class="improvement-level__name">${lvl.name}</span>${
-          lvl.ability ? `<span class="improvement-level__ability">${lvl.ability}</span>` : ""
-        }`;
-        row.appendChild(body);
-        trackEl.appendChild(row);
-      }
-      tracks.appendChild(trackEl);
+      tracks.appendChild(buildTrackCard(track));
     }
     trackSection.appendChild(tracks);
     root.appendChild(trackSection);
   }
 
-  if (root.children.length === 0 || grid.children.length === 0) {
+  if (rowCount === 0) {
     const empty = document.createElement("p");
     empty.className = "card";
     empty.textContent = "Select at least one expansion above to see its costs.";
