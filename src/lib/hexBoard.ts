@@ -2,6 +2,10 @@ import type { CatanBoard, Hex, HexType, Orientation, PortType } from "../data/bo
 import { pipsForNumber } from "../data/boards/types";
 import { HEX_ART } from "../assets/hexes/index";
 
+type HexBoardContainer = HTMLElement & {
+  __hexBoardResizeObserver?: ResizeObserver;
+};
+
 const HEX_COLOR_VAR: Record<HexType, string> = {
   hills: "--color-brick",
   forest: "--color-wood",
@@ -148,6 +152,9 @@ function buildHex(hex: Hex, index: number, showRobber: boolean, uprightBy: numbe
 }
 
 export function renderHexBoard(container: HTMLElement, board: CatanBoard, hexes: Hex[]): void {
+  const observedContainer = container as HexBoardContainer;
+  observedContainer.__hexBoardResizeObserver?.disconnect();
+
   container.innerHTML = "";
   container.className = "hex-board-frame";
 
@@ -171,4 +178,20 @@ export function renderHexBoard(container: HTMLElement, board: CatanBoard, hexes:
   });
 
   container.appendChild(grid);
+
+  const updateHexScale = (): void => {
+    const firstHex = grid.querySelector<HTMLElement>(".hex");
+    if (!firstHex) return;
+
+    const { width, height } = firstHex.getBoundingClientRect();
+    const hexSize = Math.min(width, height);
+    if (hexSize > 0) {
+      grid.style.setProperty("--hex-size", `${hexSize}px`);
+    }
+  };
+
+  updateHexScale();
+  const resizeObserver = new ResizeObserver(() => updateHexScale());
+  resizeObserver.observe(grid);
+  observedContainer.__hexBoardResizeObserver = resizeObserver;
 }
