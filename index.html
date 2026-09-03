@@ -1,48 +1,52 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Catan Companion</title>
-    <link rel="stylesheet" href="/src/styles/theme.css" />
-  </head>
-  <body>
-    <div id="nav"></div>
-    <main class="container">
-      <header class="hero">
-        <div class="hero__text">
-          <p class="hero__eyebrow">Catan &middot; Seafarers &middot; Cities &amp; Knights</p>
-          <h1>Catan Companion</h1>
-          <p class="hero__lead">
-            Every board from the rule books, laid out exactly as printed and reshuffled the way
-            the manuals say. Plus the rules and the costs, in one place.
-          </p>
-          <div class="hero__actions">
-            <a class="btn" href="./map-generator.html">Generate a board</a>
-            <a class="btn btn-secondary" href="./rules.html">Read the rules</a>
-          </div>
-        </div>
-        <div class="hero__art" id="hero-art" aria-hidden="true"></div>
-      </header>
 
-      <section class="home-cards">
-        <a class="home-card home-card--rules" href="./rules.html">
-          <h2>Rules</h2>
-          <p>Base, Seafarers, and Cities &amp; Knights, plus notes on combining them.</p>
-          <span class="home-card__go">Open</span>
-        </a>
-        <a class="home-card home-card--maps" href="./map-generator.html">
-          <h2>Map Generator</h2>
-          <p>Every scenario at 3-4 and 5-6 players. Share any board with a link.</p>
-          <span class="home-card__go">Open</span>
-        </a>
-        <a class="home-card home-card--costs" href="./cost-cards.html">
-          <h2>Cost Cards</h2>
-          <p>Building, ship, and city improvement costs, filtered by expansion.</p>
-          <span class="home-card__go">Open</span>
-        </a>
-      </section>
-    </main>
-    <script type="module" src="/src/pages/home.ts"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catan Companion</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="stylesheet" href="/src/styles/theme.css" />
+</head>
+
+<body>
+  <div id="nav"></div>
+  <main class="container">
+    <header class="hero">
+      <div class="hero__text">
+        <p class="hero__eyebrow">Catan &middot; Seafarers &middot; Cities &amp; Knights</p>
+        <h1>Catan Companion</h1>
+        <p class="hero__lead">
+          Every board from the rule books, laid out exactly as printed and reshuffled the way
+          the manuals say. Plus the rules and the costs, in one place.
+        </p>
+        <div class="hero__actions">
+          <a class="btn" href="./map-generator.html">Generate a board</a>
+          <a class="btn btn-secondary" href="./rules.html">Read the rules</a>
+        </div>
+      </div>
+      <div class="hero__art" id="hero-art" aria-hidden="true"></div>
+    </header>
+
+    <section class="home-cards">
+      <a class="home-card home-card--rules" href="./rules.html">
+        <h2>Rules</h2>
+        <p>Base, Seafarers, and Cities &amp; Knights, plus notes on combining them.</p>
+        <span class="home-card__go">Open</span>
+      </a>
+      <a class="home-card home-card--maps" href="./map-generator.html">
+        <h2>Map Generator</h2>
+        <p>Every scenario at 3-4 and 5-6 players. Share any board with a link.</p>
+        <span class="home-card__go">Open</span>
+      </a>
+      <a class="home-card home-card--costs" href="./cost-cards.html">
+        <h2>Cost Cards</h2>
+        <p>Building, ship, and city improvement costs, filtered by expansion.</p>
+        <span class="home-card__go">Open</span>
+      </a>
+    </section>
+  </main>
+  <script type="module" src="/src/pages/home.ts"></script>
+</body>
+
 </html>

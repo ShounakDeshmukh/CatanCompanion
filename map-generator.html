@@ -1,102 +1,95 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Map Generator · Catan Companion</title>
-    <link rel="stylesheet" href="/src/styles/theme.css" />
-  </head>
-  <body>
-    <div id="nav"></div>
-    <main class="container map-page">
-      <h1 class="visually-hidden">Map Generator</h1>
 
-      <form class="map-controls" id="map-controls">
-        <div class="map-controls__row">
-          <label class="map-controls__board">
-            <span class="visually-hidden">Board</span>
-            <select id="board-select"></select>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Map Generator · Catan Companion</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="stylesheet" href="/src/styles/theme.css" />
+</head>
+
+<body>
+  <div id="nav"></div>
+  <main class="container map-page">
+    <h1 class="visually-hidden">Map Generator</h1>
+
+    <form class="map-controls" id="map-controls">
+      <div class="map-controls__row">
+        <label class="map-controls__board">
+          <span class="visually-hidden">Board</span>
+          <select id="board-select"></select>
+        </label>
+        <button class="btn" type="submit">Shuffle</button>
+      </div>
+
+      <div class="map-controls__row map-controls__row--constraints">
+        <div class="map-chip-group">
+          <span class="map-chip-group__label">Numbers</span>
+          <label class="map-chip" title="No two hexes showing 6 or 8 may be neighbours">
+            <input type="checkbox" id="no-6-8-adjacent" />
+            No 6/8 touching
           </label>
-          <button class="btn" type="submit">Shuffle</button>
+          <label class="map-chip" title="No two hexes showing 2 or 12 may be neighbours">
+            <input type="checkbox" id="no-2-12-adjacent" />
+            No 2/12 touching
+          </label>
+          <label class="map-chip" title="No two hexes showing the same number may be neighbours">
+            <input type="checkbox" id="no-same-adjacent" />
+            No duplicate numbers touching
+          </label>
+          <label class="map-chip map-chip--select"
+            title="Largest total pip count across the three hexes meeting at one settlement spot">
+            Max pips per corner
+            <select id="max-intersection-pips">
+              <option value="15">any</option>
+              <option value="14">14</option>
+              <option value="13">13</option>
+              <option value="12">12</option>
+              <option value="11">11</option>
+              <option value="10">10</option>
+              <option value="9">9</option>
+            </select>
+          </label>
         </div>
 
-        <div class="map-controls__row map-controls__row--constraints">
-          <div class="map-chip-group">
-            <span class="map-chip-group__label">Numbers</span>
-            <label class="map-chip" title="No two hexes showing 6 or 8 may be neighbours">
-              <input type="checkbox" id="no-6-8-adjacent" />
-              No 6/8 touching
-            </label>
-            <label class="map-chip" title="No two hexes showing 2 or 12 may be neighbours">
-              <input type="checkbox" id="no-2-12-adjacent" />
-              No 2/12 touching
-            </label>
-            <label
-              class="map-chip"
-              title="No two hexes showing the same number may be neighbours"
-            >
-              <input type="checkbox" id="no-same-adjacent" />
-              No duplicate numbers touching
-            </label>
-            <label
-              class="map-chip map-chip--select"
-              title="Largest total pip count across the three hexes meeting at one settlement spot"
-            >
-              Max pips per corner
-              <select id="max-intersection-pips">
-                <option value="15">any</option>
-                <option value="14">14</option>
-                <option value="13">13</option>
-                <option value="12">12</option>
-                <option value="11">11</option>
-                <option value="10">10</option>
-                <option value="9">9</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="map-chip-group">
-            <span class="map-chip-group__label">Terrain</span>
-            <label
-              class="map-chip map-chip--select"
-              title="Largest connected clump of one terrain type, in any shape"
-            >
-              Biggest same-terrain clump
-              <select id="max-connected-terrain">
-                <option value="7">any</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="map-chip-group">
-            <span class="map-chip-group__label">Layout</span>
-            <label
-              class="map-chip map-chip--select"
-              id="min-islands-field"
-              title="Fewest separate landmasses the board must end up with"
-            >
-              Min islands
-              <select id="min-island-count">
-                <option value="1">any</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-              </select>
-            </label>
-          </div>
+        <div class="map-chip-group">
+          <span class="map-chip-group__label">Terrain</span>
+          <label class="map-chip map-chip--select" title="Largest connected clump of one terrain type, in any shape">
+            Biggest same-terrain clump
+            <select id="max-connected-terrain">
+              <option value="7">any</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+            </select>
+          </label>
         </div>
-      </form>
 
-      <div id="map-generator-root"></div>
-    </main>
-    <script type="module" src="/src/pages/mapGenerator.ts"></script>
-  </body>
+        <div class="map-chip-group">
+          <span class="map-chip-group__label">Layout</span>
+          <label class="map-chip map-chip--select" id="min-islands-field"
+            title="Fewest separate landmasses the board must end up with">
+            Min islands
+            <select id="min-island-count">
+              <option value="1">any</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </form>
+
+    <div id="map-generator-root"></div>
+  </main>
+  <script type="module" src="/src/pages/mapGenerator.ts"></script>
+</body>
+
 </html>
