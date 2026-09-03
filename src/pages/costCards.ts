@@ -14,7 +14,7 @@ renderNav("cost-cards");
 const RESOURCE_LABEL: Record<keyof ResourceCost, string> = {
   brick: "Brick",
   wood: "Wood",
-  wool: "Wool",
+  wool: "Sheep",
   wheat: "Wheat",
   ore: "Ore",
 };
@@ -31,18 +31,13 @@ const EXPANSION_LABEL: Record<Expansion, string> = {
   citiesKnights: "Cities & Knights",
 };
 
-/**
- * Cost chip icon, colored via the --chip-color custom property. Pass colorVar to tint it
- * directly (building-cost rows mix several resources per row); omit it inside an
- * improvement-track card, where every chip shares the ancestor card's --track-color.
- */
-function buildCostChip(svgMarkup: string, label: string, amount: number, colorVar?: string): HTMLElement {
+/** A single labeled chip with a quantity badge, used where the count still needs calling out. */
+function buildCostChip(svgMarkup: string, label: string, amount: number): HTMLElement {
   const chip = document.createElement("span");
   chip.className = "cost-chip";
   chip.title = `${amount} ${label}`;
   const icon = document.createElement("span");
   icon.className = "cost-chip__icon";
-  if (colorVar) icon.style.setProperty("--chip-color", `var(${colorVar})`);
   icon.innerHTML = svgMarkup;
   const qty = document.createElement("span");
   qty.className = "cost-chip__qty";
@@ -51,15 +46,84 @@ function buildCostChip(svgMarkup: string, label: string, amount: number, colorVa
   return chip;
 }
 
-/** One chip per resource type (with a quantity), the way a real reference card prints it. */
-function buildCostChips(cost: ResourceCost): HTMLElement {
+/** One icon token per unit of cost - brick x2 prints as two brick tokens, not "brick x2". */
+function showResourcePopover(resource: keyof ResourceCost, anchor: HTMLElement): void {
+  const existing = document.querySelector(".resource-popover");
+  if (existing) {
+    existing.remove();
+  }
+
+  const label = RESOURCE_LABEL[resource];
+  const popover = document.createElement("div");
+  popover.className = "resource-popover";
+  popover.setAttribute("role", "dialog");
+  popover.setAttribute("aria-live", "polite");
+  popover.innerHTML = `
+    <div class="resource-popover__inner">
+      <div class="resource-popover__title">${label}</div>
+    </div>
+  `;
+
+  document.body.appendChild(popover);
+
+  const anchorRect = anchor.getBoundingClientRect();
+  const popoverRect = popover.getBoundingClientRect();
+  const left = anchorRect.left + anchorRect.width / 2;
+  const top = anchorRect.top;
+
+  popover.style.left = `${left}px`;
+  popover.style.top = `${top}px`;
+  popover.style.transform = `translate(-50%, calc(-100% - 12px))`;
+
+  if (popoverRect.width > window.innerWidth - 24) {
+    popover.style.left = `${window.innerWidth / 2}px`;
+  }
+
+  const close = (event?: MouseEvent | KeyboardEvent): void => {
+    const target = event?.target as Node | null;
+    if (target && popover.contains(target)) {
+      return;
+    }
+    popover.remove();
+    document.removeEventListener("click", close);
+    document.removeEventListener("keydown", close);
+    window.clearTimeout(autoHideTimer);
+  };
+
+  const autoHideTimer = window.setTimeout(() => {
+    popover.remove();
+    document.removeEventListener("click", close);
+    document.removeEventListener("keydown", close);
+  }, 1500);
+
+  document.addEventListener("click", close);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      popover.remove();
+      document.removeEventListener("click", close);
+      document.removeEventListener("keydown", close);
+      window.clearTimeout(autoHideTimer);
+    }
+  });
+}
+
+function buildCostTokens(cost: ResourceCost): HTMLElement {
   const wrap = document.createElement("div");
   wrap.className = "building-row__costs";
   for (const [resource, amount] of Object.entries(cost) as [keyof ResourceCost, number][]) {
-    if (!amount) continue;
-    wrap.appendChild(
-      buildCostChip(RESOURCE_ICON_SVG[resource], RESOURCE_LABEL[resource], amount, `--color-${resource}`)
-    );
+    for (let i = 0; i < amount; i++) {
+      const token = document.createElement("button");
+      token.type = "button";
+      token.className = "cost-token resource-token";
+      token.title = RESOURCE_LABEL[resource];
+      token.style.setProperty("--chip-color", `var(--color-${resource})`);
+      token.innerHTML = RESOURCE_ICON_SVG[resource];
+      token.addEventListener("click", (event) => {
+        event.stopPropagation();
+        showResourcePopover(resource, token);
+      });
+      wrap.appendChild(token);
+    }
   }
   return wrap;
 }
@@ -94,7 +158,7 @@ function buildBuildingRow(item: (typeof BUILDING_COSTS)[number]): HTMLElement {
     body.appendChild(note);
   }
   row.appendChild(body);
-  row.appendChild(buildCostChips(item.cost));
+  row.appendChild(buildCostTokens(item.cost));
   return row;
 }
 
