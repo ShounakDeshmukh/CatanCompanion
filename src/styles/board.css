@@ -89,11 +89,12 @@
 .hex-chit {
   --chit-face: #f6ecd4;
   --chit-ink: #2b2118;
+  --hex-chit-size: clamp(1.55rem, 2.2vw, 2.5rem);
   background: radial-gradient(circle at 34% 28%, #fffaf0 0%, var(--chit-face) 62%, #e2d3b2 100%);
   border: 1px solid #b9a480;
   border-radius: 999px;
-  width: 2.25em;
-  height: 2.25em;
+  width: var(--hex-chit-size);
+  height: var(--hex-chit-size);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -104,7 +105,7 @@
 
 .hex-chit__value {
   font-weight: 700;
-  font-size: 1.02rem;
+  font-size: clamp(0.72rem, 1vw, 1.02rem);
   line-height: 1;
   color: var(--chit-ink);
 }
@@ -114,7 +115,7 @@
 }
 
 .hex-chit__pips {
-  font-size: 0.5rem;
+  font-size: clamp(0.34rem, 0.52vw, 0.5rem);
   line-height: 1;
   letter-spacing: 1px;
   color: var(--chit-ink);
@@ -308,6 +309,7 @@
 }
 
 @media print {
+
   .site-nav,
   .map-controls {
     display: none !important;
@@ -377,7 +379,7 @@
   color: var(--color-text-muted);
 }
 
-.facedown-stack tbody tr + tr {
+.facedown-stack tbody tr+tr {
   border-top: 1px solid rgb(255 255 255 / 0.06);
 }
 

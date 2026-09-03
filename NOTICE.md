@@ -39,8 +39,10 @@ Two departures from that source:
   where the rule book gives it two ("The 12 number discs on the six small islands represent
   villages", p.9). The pairs are restored from the map.
 
-### Rule books
+### game-icons.net
 
-The PDFs under `Rules/` are published by CATAN GmbH / CATAN Studio and are included for
-reference only. They are not covered by this project's license. CATAN is a trademark of
-CATAN GmbH.
+The resource, building, and commodity SVGs used in the cost reference and map UI are vectors published on [game-icons.net](https://game-icons.net), including work by
+[Delapouite](https://delapouite.com), [Lorc](https://lorcblog.blogspot.com), and the broader
+contributors to that collection. Their icons are distributed under the
+[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) license.
+
