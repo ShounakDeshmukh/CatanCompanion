@@ -2,18 +2,35 @@ import "../styles/theme.css";
 import "../styles/board.css";
 import { renderNav } from "../lib/nav";
 import { BOARD_REGISTRY, getBoardEntry } from "../data/boards/registry";
-import { buildBoard } from "../lib/boardFactory";
 import {
-  generateBoard,
   randomSeed,
-  UnsatisfiableConstraintsError,
   type ShuffleConstraints,
 } from "../lib/shuffle";
+import type { CatanBoard, Hex } from "../data/boards/types";
 import { renderHexBoard } from "../lib/hexBoard";
 import { renderFacedownStack } from "../lib/facedownStack";
 import { decodeShareHash, encodeShareHash } from "../lib/shareLink";
 
 renderNav("map-generator");
+
+type MapGenerationSuccess = {
+  generationId: number;
+  ok: true;
+  boardId: string;
+  seed: number;
+  constraints: ShuffleConstraints;
+  board: CatanBoard;
+  hexes: Hex[];
+};
+
+type MapGenerationFailure = {
+  generationId: number;
+  ok: false;
+  name: string;
+  error: string;
+};
+
+type MapGenerationMessage = MapGenerationSuccess | MapGenerationFailure;
 
 const boardSelect = document.getElementById("board-select") as HTMLSelectElement;
 const byId = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -47,6 +64,12 @@ function writeConstraints(c: ShuffleConstraints): void {
   maxPips.value = String(c.maxIntersectionPipCount);
   minIslands.value = String(c.minIslandCount);
 }
+
+const generatorWorker = new Worker(new URL("../workers/mapGeneratorWorker.ts", import.meta.url), {
+  type: "module",
+});
+
+let activeGenerationId = 0;
 const form = document.getElementById("map-controls") as HTMLFormElement;
 const root = document.getElementById("map-generator-root") as HTMLElement;
 const shuffleButton = form.querySelector("button[type=submit]") as HTMLButtonElement;
@@ -67,12 +90,7 @@ for (const entry of BOARD_REGISTRY) {
   group.appendChild(option);
 }
 
-function generateAndRender(boardId: string, seed: number): void {
-  const entry = getBoardEntry(boardId);
-  if (!entry) return;
-
-  const board = buildBoard(entry.template);
-
+function syncBoardSpecificControls(board: CatanBoard): void {
   // islands can only be counted differently on boards whose sea hexes are allowed to move,
   // so the control is pointless anywhere else
   const islandsMoveable = board.recommendedLayout.some(
@@ -81,24 +99,55 @@ function generateAndRender(boardId: string, seed: number): void {
   minIslandsField.classList.toggle("map-chip--disabled", !islandsMoveable);
   minIslands.disabled = !islandsMoveable;
   if (!islandsMoveable) minIslands.value = "1";
+}
 
-  const constraints = readConstraints();
+function renderGeneratedBoard(
+  boardId: string,
+  seed: number,
+  constraints: ShuffleConstraints,
+  board: CatanBoard,
+  hexes: Hex[]
+): void {
+  syncBoardSpecificControls(board);
 
-  try {
-    const { hexes, seed: usedSeed } = generateBoard(board, constraints, seed);
-    root.innerHTML = "";
-    const boardHost = document.createElement("div");
-    root.appendChild(boardHost);
-    renderHexBoard(boardHost, board, hexes);
-    if (board.facedownStack) root.appendChild(renderFacedownStack(board.facedownStack));
-    history.replaceState(null, "", encodeShareHash({ boardId, seed: usedSeed, constraints }));
-  } catch (error) {
-    if (error instanceof UnsatisfiableConstraintsError) {
-      root.innerHTML = `<p class="card">${error.message}</p>`;
-    } else {
-      throw error;
-    }
+  root.innerHTML = "";
+  const boardHost = document.createElement("div");
+  root.appendChild(boardHost);
+  renderHexBoard(boardHost, board, hexes);
+  if (board.facedownStack) root.appendChild(renderFacedownStack(board.facedownStack));
+  history.replaceState(null, "", encodeShareHash({ boardId, seed, constraints }));
+}
+
+generatorWorker.addEventListener("message", (event: MessageEvent<MapGenerationMessage>) => {
+  const message = event.data;
+  if (message.generationId !== activeGenerationId) return;
+
+  setControlsDisabled(false);
+
+  if (!message.ok) {
+    root.innerHTML = `<p class="card">${message.error}</p>`;
+    return;
   }
+
+  renderGeneratedBoard(message.boardId, message.seed, message.constraints, message.board, message.hexes);
+});
+
+generatorWorker.addEventListener("error", () => {
+  if (activeGenerationId === 0) return;
+  setControlsDisabled(false);
+  root.innerHTML = `<p class="card">Map generation failed.</p>`;
+});
+
+function requestGeneration(boardId: string, seed: number, constraints: ShuffleConstraints): void {
+  if (!getBoardEntry(boardId)) return;
+
+  activeGenerationId += 1;
+  generatorWorker.postMessage({
+    generationId: activeGenerationId,
+    boardId,
+    seed,
+    constraints,
+  });
 }
 
 function setControlsDisabled(disabled: boolean): void {
@@ -120,16 +169,14 @@ function nextPaint(): Promise<void> {
 }
 
 // a tight combination of constraints can make the shuffler burn its full time budget
-// (up to 1.5s, see shuffle.ts) searching for a satisfying board. That runs synchronously,
-// so the controls are disabled and given a paint first - otherwise the tab just looks frozen.
+// (up to 1.5s, see shuffle.ts) searching for a satisfying board. The controls are disabled
+// and given a paint first so the page stays responsive while the worker does the work.
 async function reshuffle(boardId: string, seed: number): Promise<void> {
+  const constraints = readConstraints();
   setControlsDisabled(true);
   await nextPaint();
-  try {
-    generateAndRender(boardId, seed);
-  } finally {
-    setControlsDisabled(false);
-  }
+  root.innerHTML = `<p class="card">Generating board…</p>`;
+  requestGeneration(boardId, seed, constraints);
 }
 
 // picking a board draws it straight away; there is nothing else the button could be for

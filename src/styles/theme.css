@@ -23,6 +23,30 @@
   line-gap-override: 0%;
 }
 
+@font-face {
+  font-family: "Cinzel";
+  src: url("/Cinzel-VariableFont_wght.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 600 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Crimson Pro";
+  src: url("/CrimsonPro-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Crimson Pro";
+  src: url("/CrimsonPro-Italic.ttf") format("truetype");
+  font-style: italic;
+  font-weight: 500;
+  font-display: swap;
+}
+
 :root {
   --color-bg: #f4e9d2;
   --color-bg-raised: #fbf3e2;
