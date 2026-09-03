@@ -49,6 +49,7 @@ function writeConstraints(c: ShuffleConstraints): void {
 }
 const form = document.getElementById("map-controls") as HTMLFormElement;
 const root = document.getElementById("map-generator-root") as HTMLElement;
+const shuffleButton = form.querySelector("button[type=submit]") as HTMLButtonElement;
 
 // 26 boards is too many for a flat list, so group them the way the boxes are sold
 const groups = new Map<string, HTMLOptGroupElement>();
@@ -100,13 +101,42 @@ function generateAndRender(boardId: string, seed: number): void {
   }
 }
 
-const reshuffle = () => generateAndRender(boardSelect.value, randomSeed());
+function setControlsDisabled(disabled: boolean): void {
+  shuffleButton.disabled = disabled;
+  shuffleButton.textContent = disabled ? "Generating…" : "Shuffle";
+  boardSelect.disabled = disabled;
+  for (const input of CONSTRAINT_INPUTS) {
+    // generateAndRender decides min-islands' own disabled state based on the board, so only
+    // this function's disable side touches it - re-enabling is left to that logic
+    if (input === minIslands && !disabled) continue;
+    input.disabled = disabled;
+  }
+}
+
+function nextPaint(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
+// a tight combination of constraints can make the shuffler burn its full time budget
+// (up to 1.5s, see shuffle.ts) searching for a satisfying board. That runs synchronously,
+// so the controls are disabled and given a paint first - otherwise the tab just looks frozen.
+async function reshuffle(boardId: string, seed: number): Promise<void> {
+  setControlsDisabled(true);
+  await nextPaint();
+  try {
+    generateAndRender(boardId, seed);
+  } finally {
+    setControlsDisabled(false);
+  }
+}
 
 // picking a board draws it straight away; there is nothing else the button could be for
-boardSelect.addEventListener("change", reshuffle);
+boardSelect.addEventListener("change", () => void reshuffle(boardSelect.value, randomSeed()));
 form.addEventListener("submit", (event) => {
   event.preventDefault();
-  reshuffle();
+  void reshuffle(boardSelect.value, randomSeed());
 });
 
 // a constraint change re-runs the same seed, so you can see what that setting did rather
@@ -114,7 +144,7 @@ form.addEventListener("submit", (event) => {
 for (const input of CONSTRAINT_INPUTS) {
   input.addEventListener("change", () => {
     const current = decodeShareHash(window.location.hash);
-    generateAndRender(boardSelect.value, current?.seed ?? randomSeed());
+    void reshuffle(boardSelect.value, current?.seed ?? randomSeed());
   });
 }
 
@@ -123,4 +153,4 @@ if (shared && getBoardEntry(shared.boardId)) {
   boardSelect.value = shared.boardId;
   writeConstraints(shared.constraints);
 }
-generateAndRender(boardSelect.value || BOARD_REGISTRY[0].id, shared?.seed ?? randomSeed());
+void reshuffle(boardSelect.value || BOARD_REGISTRY[0].id, shared?.seed ?? randomSeed());

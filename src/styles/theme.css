@@ -1,4 +1,27 @@
-@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,500&display=swap");
+/*
+ * Metric-matched local stand-ins for the two webfonts, so the fallback occupies the same box
+ * the real font will once it loads and swapping in doesn't reflow the page. Values computed
+ * from each font's actual metrics against Georgia (the first fallback below) using the same
+ * formula as the "fontaine" package: size-adjust matches average glyph width, then
+ * ascent/descent/line-gap are rescaled to that adjusted em so the line box lines up too.
+ */
+@font-face {
+  font-family: "Cinzel Fallback";
+  src: local("Georgia");
+  size-adjust: 124.7194%;
+  ascent-override: 78.2557%;
+  descent-override: 29.827%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Crimson Pro Fallback";
+  src: local("Georgia");
+  size-adjust: 89.8138%;
+  ascent-override: 99.8159%;
+  descent-override: 23.921%;
+  line-gap-override: 0%;
+}
 
 :root {
   --color-bg: #f4e9d2;
@@ -22,8 +45,8 @@
   --color-cloth: #d9ab2e;
   --color-coin: #2f97a8;
 
-  --font-heading: "Cinzel", Georgia, "Times New Roman", serif;
-  --font-body: "Crimson Pro", Georgia, "Times New Roman", serif;
+  --font-heading: "Cinzel", "Cinzel Fallback", Georgia, "Times New Roman", serif;
+  --font-body: "Crimson Pro", "Crimson Pro Fallback", Georgia, "Times New Roman", serif;
 
   --radius: 10px;
   --shadow: 0 2px 6px rgba(59, 42, 26, 0.18);
