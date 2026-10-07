@@ -55,6 +55,9 @@ import {
   removeKnight,
   resolveBarbarians,
   standDownKnight,
+  KNIGHTS_PER_RANK,
+  knightAvailable,
+  knightsOfRank,
 } from "../lib/cityKnights";
 import {
   facedownRemaining,
@@ -86,6 +89,10 @@ import {
   type GameState,
   type KnightAction,
   type Track,
+  PIECE_LIMITS,
+  pieceAvailable,
+  piecesOnBoard,
+  type Piece,
 } from "../lib/gameState";
 
 renderNav("play");
@@ -352,6 +359,31 @@ function runGame(
     });
   }
 
+  /** What the player who is building has on the board, out of what their box holds. */
+  function supplyHtml(): string {
+    const onBoard = piecesOnBoard(state, builder);
+    const pieces: Piece[] = seafaring
+      ? ["settlement", "city", "road", "ship"]
+      : ["settlement", "city", "road"];
+    const tally = (count: number, limit: number, label: string) =>
+      `<span class="${count >= limit ? "play-supply__out" : ""}">${count} of ${limit} ${label}</span>`;
+    const counts = pieces.map((piece) =>
+      tally(onBoard[piece], PIECE_LIMITS[piece], piece === "city" ? "cities" : `${piece}s`)
+    );
+    if (state.citiesKnights) {
+      counts.push(
+        ...KNIGHT_RANK.map((rank, index) =>
+          tally(
+            knightsOfRank(state, builder, (index + 1) as 1 | 2 | 3),
+            KNIGHTS_PER_RANK,
+            `${rank.toLowerCase()} knights`
+          )
+        )
+      );
+    }
+    return `${escapeHtml(state.players[builder].name)} has out ${counts.join(", ")}.`;
+  }
+
   function toolbarHtml(): string {
     const modeChips = (options: Mode[]) => `
       <div class="play-chips">
@@ -391,7 +423,8 @@ function runGame(
         ${state.citiesKnights ? "" : `<button class="play-chip" data-action="buy-card">Buy development card</button>`}
         <button class="play-chip" data-action="zoom">Zoom ${ZOOM_STEPS[zoom] === 1 ? "in" : `${ZOOM_STEPS[zoom]}x`}</button>
       </div>
-      <p class="play-muted">${movingKnight ? "Tap the corner the knight moves to." : MODE_HINT[mode]}</p>`;
+      <p class="play-muted">${movingKnight ? "Tap the corner the knight moves to." : MODE_HINT[mode]}</p>
+      <p class="play-muted play-supply">${supplyHtml()}</p>`;
   }
 
   function render(): void {
@@ -425,8 +458,13 @@ function runGame(
       const moving = movingKnight === undefined ? undefined : state.knights[movingKnight];
       const owner = moving?.player ?? builder;
       const network = networkCorners(state, edges, owner, layingSide ? layingShip : undefined);
-      cornerOpen = (corner) => network.has(corner);
-      sideOpen = (ends) => ends.some((end) => network.has(end));
+      // nothing is offered that the builder has run out of; a knight being moved is already out
+      const inBox =
+        placing === "knight"
+          ? moving !== undefined || knightAvailable(state, builder, 1)
+          : pieceAvailable(state, builder, layingSide ? (layingShip ? "ship" : "road") : "settlement");
+      cornerOpen = (corner) => inBox && network.has(corner);
+      sideOpen = (ends) => inBox && ends.some((end) => network.has(end));
     }
 
     const ships = new Set(state.ships);
@@ -498,6 +536,8 @@ function runGame(
 
   /** Applies a change to the game, keeping what came before so it can be undone. */
   function commit(next: GameState): void {
+    // a move the rules refused comes back as the same game, and is not a step to undo
+    if (next === state) return;
     undoStack.push(state);
     saveUndo(undoStack);
     show(next);
@@ -611,7 +651,7 @@ function runGame(
       <p class="play-muted">${knight.active ? "Active" : "Inactive"}, strength ${knight.level}.</p>
       <div class="play-chips">
         ${knight.active ? "" : option("activate", "Activate", "activate")}
-        ${knight.level < 3 ? option("promote", "Promote", "promote") : ""}
+        ${knight.level < 3 && knightAvailable(state, knight.player, (knight.level + 1) as 2 | 3) ? option("promote", "Promote", "promote") : ""}
         ${knight.active ? option("move", "Move") + option("chase", "Chase the robber") + option("rest", "Set inactive") : ""}
       </div>
       <div class="play-chips">

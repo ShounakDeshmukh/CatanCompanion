@@ -12,6 +12,20 @@ import type { Edge } from "./vertices";
  * there to meet.
  */
 
+/** A player has two knights of each rank: basic, strong and mighty. */
+export const KNIGHTS_PER_RANK = 2;
+
+export function knightsOfRank(state: GameState, player: number, level: Knight["level"]): number {
+  return Object.values(state.knights).filter(
+    (knight) => knight.player === player && knight.level === level
+  ).length;
+}
+
+/** Whether the player has a knight of this rank left, to recruit or to promote into. */
+export function knightAvailable(state: GameState, player: number, level: Knight["level"]): boolean {
+  return knightsOfRank(state, player, level) < KNIGHTS_PER_RANK;
+}
+
 /** A basic knight goes on an empty corner of the player's own road, asleep. */
 export function recruitKnight(
   state: GameState,
@@ -19,7 +33,7 @@ export function recruitKnight(
   corner: string,
   player: number
 ): GameState {
-  if (occupant(state, corner) !== undefined) return state;
+  if (occupant(state, corner) !== undefined || !knightAvailable(state, player, 1)) return state;
   const knights = { ...state.knights, [corner]: { player, level: 1, active: false } as Knight };
   const recruited = logged({ ...state, knights }, { kind: "troop", player, action: "recruit" });
   // a knight breaks an opponent's road just as a settlement does
@@ -34,6 +48,8 @@ export function promoteKnight(state: GameState, corner: string): GameState {
   const knight = state.knights[corner];
   if (!knight || knight.level === 3) return state;
   const level = (knight.level + 1) as Knight["level"];
+  // promoting swaps the piece for one of the next rank, which has to be in the box
+  if (!knightAvailable(state, knight.player, level)) return state;
   return logged(withKnight(state, corner, { ...knight, level }), {
     kind: "troop",
     player: knight.player,

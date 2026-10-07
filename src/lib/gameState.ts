@@ -141,6 +141,9 @@ export interface GameState {
   room: string | null;
 }
 
+/** How many of each piece a player's box holds. Ships only exist in Seafarers. */
+export const PIECE_LIMITS: Record<Piece, number> = { settlement: 5, city: 4, road: 15, ship: 15 };
+
 export const BARBARIAN_TRACK_LENGTH = 7;
 export const LONGEST_ROAD_MINIMUM = 5;
 export const LARGEST_ARMY_MINIMUM = 3;
@@ -309,6 +312,24 @@ export function barbariansAttacked(state: GameState): boolean {
   );
 }
 
+/** How many of each piece a player has on the board, which is what counts against the box. */
+export function piecesOnBoard(state: GameState, player: number): Record<Piece, number> {
+  const count: Record<Piece, number> = { settlement: 0, city: 0, road: 0, ship: 0 };
+  for (const building of Object.values(state.buildings)) {
+    if (building.player === player) count[building.kind]++;
+  }
+  const ships = new Set(state.ships);
+  for (const [side, owner] of Object.entries(state.roads)) {
+    if (owner === player) count[ships.has(side) ? "ship" : "road"]++;
+  }
+  return count;
+}
+
+/** Whether the player still has one of these in their box to put down. */
+export function pieceAvailable(state: GameState, player: number, piece: Piece): boolean {
+  return piecesOnBoard(state, player)[piece] < PIECE_LIMITS[piece];
+}
+
 /** Who holds a corner, whether with a building or a knight. */
 export function occupant(state: GameState, corner: string): number | undefined {
   return state.buildings[corner]?.player ?? state.knights[corner]?.player;
@@ -461,7 +482,8 @@ export function moveRobber(
 
 /**
  * One tap steps a corner through empty, settlement, city and back to empty. Returns the same
- * state untouched when a new settlement would break the distance rule.
+ * state untouched when a new settlement would break the distance rule, or when the owner has
+ * none of the piece left: a city replaces its settlement, which goes back in the box.
  */
 export function cycleBuilding(
   state: GameState,
@@ -473,11 +495,13 @@ export function cycleBuilding(
   let next: GameState;
   if (!existing) {
     if (state.knights[vertexId] || tooCloseToBuild(state, edges, vertexId)) return state;
+    if (!pieceAvailable(state, player, "settlement")) return state;
     next = logged(
       { ...state, buildings: { ...others, [vertexId]: { player, kind: "settlement" } } },
       { kind: "build", player, piece: "settlement", site: vertexId, free: false }
     );
   } else if (existing.kind === "settlement") {
+    if (!pieceAvailable(state, existing.player, "city")) return state;
     next = logged(
       { ...state, buildings: { ...others, [vertexId]: { ...existing, kind: "city" } } },
       { kind: "build", player: existing.player, piece: "city", site: vertexId, free: false }
@@ -503,6 +527,7 @@ export function toggleRoad(
     return withLongestRoad(withoutBuilds({ ...state, roads: others, ships }, edgeId), edges);
   }
   const { ship = false } = options;
+  if (!pieceAvailable(state, player, ship ? "ship" : "road")) return state;
   const owed = state.freeRoads?.player === player ? state.freeRoads : null;
   const freeRoads = owed ? (owed.left > 1 ? { ...owed, left: owed.left - 1 } : null) : state.freeRoads;
   const laid = logged(

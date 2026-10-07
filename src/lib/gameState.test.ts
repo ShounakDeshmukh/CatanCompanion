@@ -15,6 +15,8 @@ import {
   promoteKnight,
   recruitKnight,
   resolveBarbarians,
+  KNIGHTS_PER_RANK,
+  knightAvailable,
 } from "./cityKnights";
 import {
   facedownRemaining,
@@ -48,6 +50,8 @@ import {
   setupTurn,
   toggleRoad,
   type GameState,
+  PIECE_LIMITS,
+  piecesOnBoard,
 } from "./gameState";
 import { boardStats } from "./boardStats";
 import {
@@ -704,4 +708,59 @@ test("the sample game is a real game, ready for its next roll", () => {
   assert.ok(productionTotals(sample).received.reduce((sum, cards) => sum + cards, 0) > 5);
   assert.ok(buildSpending(sample).some((spent) => spent > 0));
   assert.ok(parseGame(JSON.parse(JSON.stringify(sample))));
+});
+
+test("a player cannot put down more pieces than their box holds", () => {
+  const land = vertices.filter((v) => v.hexes.some((i) => hexes[i].type !== "sea"));
+  let state: GameState = { ...startedGame(), setup: null };
+
+  // settlements: every third corner along the list keeps them apart; stop when refused
+  const settled: string[] = [];
+  for (const corner of land) {
+    const next = cycleBuilding(state, edges, corner.id, 0);
+    if (next === state) continue;
+    state = next;
+    settled.push(corner.id);
+    if (settled.length === PIECE_LIMITS.settlement) break;
+  }
+  assert.equal(piecesOnBoard(state, 0).settlement, 5);
+  const spare = land.find((v) => !state.buildings[v.id] && cycleBuilding({ ...state, buildings: {} }, edges, v.id, 0) !== state)!;
+  assert.equal(Object.keys(cycleBuilding(state, edges, spare.id, 0).buildings).length, 5);
+  // the other player's box is their own
+  assert.notEqual(cycleBuilding({ ...state, buildings: {} }, edges, spare.id, 1), state);
+
+  // four cities, each freeing its settlement; the fifth settlement cannot be upgraded
+  for (const corner of settled.slice(0, PIECE_LIMITS.city)) state = cycleBuilding(state, edges, corner, 0);
+  assert.deepEqual(piecesOnBoard(state, 0), { settlement: 1, city: 4, road: 0, ship: 0 });
+  assert.equal(cycleBuilding(state, edges, settled[4], 0), state);
+});
+
+test("fifteen roads and fifteen ships each, counted apart", () => {
+  const { path } = roadChain(16);
+  let state: GameState = { ...startedGame(), setup: null };
+  path.slice(0, 15).forEach((id) => (state = toggleRoad(state, edges, id, 0)));
+  assert.equal(piecesOnBoard(state, 0).road, 15);
+  assert.equal(toggleRoad(state, edges, path[15], 0), state);
+
+  // a ship is a different piece, and taking a road back frees one up
+  const shipped = toggleRoad(state, edges, path[15], 0, { ship: true });
+  assert.deepEqual([piecesOnBoard(shipped, 0).road, piecesOnBoard(shipped, 0).ship], [15, 1]);
+  const freed = toggleRoad(toggleRoad(state, edges, path[0], 0), edges, path[15], 0);
+  assert.equal(piecesOnBoard(freed, 0).road, 15);
+});
+
+test("two knights of each rank per player", () => {
+  const free = vertices.filter((v) => v.hexes.some((i) => hexes[i].type !== "sea")).map((v) => v.id);
+  let state: GameState = { ...startedGame(), setup: null, citiesKnights: true };
+  state = recruitKnight(recruitKnight(state, edges, free[0], 0), edges, free[1], 0);
+  assert.equal(knightAvailable(state, 0, 1), false);
+  assert.equal(recruitKnight(state, edges, free[2], 0), state);
+
+  // promoting one frees a basic knight and uses a strong one
+  state = promoteKnight(state, free[0]);
+  state = recruitKnight(state, edges, free[2], 0);
+  state = promoteKnight(state, free[1]);
+  assert.equal(Object.values(state.knights).filter((knight) => knight.level === 2).length, KNIGHTS_PER_RANK);
+  assert.equal(promoteKnight(state, free[2]), state);
+  assert.notEqual(promoteKnight(state, free[0]), state);
 });
