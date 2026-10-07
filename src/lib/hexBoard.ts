@@ -133,17 +133,18 @@ function buildHex(hex: Hex, index: number, uprightBy: number): HTMLElement {
 function buildHexTop(
   hex: Hex,
   index: number,
-  showRobber: boolean,
+  thief: "robber" | "pirate" | undefined,
   uprightBy: number
 ): HTMLElement | undefined {
   const element = document.createElement("div");
   element.className = "hex-top";
   element.dataset.hexIndex = String(index);
 
-  if (showRobber) {
+  if (thief) {
+    // the pirate is the robber's figure at sea, told apart by its colour
     const robber = document.createElement("div");
-    robber.className = "hex-robber";
-    robber.title = "Robber";
+    robber.className = thief === "pirate" ? "hex-robber hex-robber--pirate" : "hex-robber";
+    robber.title = thief === "pirate" ? "Pirate" : "Robber";
     robber.style.transform = `translate(-50%, -50%) rotate(${uprightBy}deg)`;
     element.appendChild(robber);
   }
@@ -177,7 +178,8 @@ export function renderHexBoard(
   board: CatanBoard,
   hexes: Hex[],
   // scenarios can have several deserts but there is only ever one robber
-  robberIndex: number = hexes.findIndex((hex) => hex.type === "desert")
+  robberIndex: number = hexes.findIndex((hex) => hex.type === "desert"),
+  pirateIndex: number = -1
 ): void {
   const observedContainer = container as HexBoardContainer;
   observedContainer.__hexBoardResizeObserver?.disconnect();
@@ -202,7 +204,8 @@ export function renderHexBoard(
     tile.style.gridArea = board.cssGridAreas[index];
     grid.appendChild(tile);
 
-    const top = buildHexTop(hex, index, index === robberIndex, -boardRotation);
+    const thief = index === robberIndex ? "robber" : index === pirateIndex ? "pirate" : undefined;
+    const top = buildHexTop(hex, index, thief, -boardRotation);
     if (!top) return;
     top.style.gridArea = board.cssGridAreas[index];
     tops.push(top);

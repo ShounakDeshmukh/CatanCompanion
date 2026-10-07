@@ -11,6 +11,17 @@ import { shuffleInPlace } from "../lib/shuffle";
 import { boardGeometry, type Edge } from "../lib/vertices";
 import { clearGame, loadGame, loadUndo, saveGame, saveUndo } from "../lib/gameCodec";
 import {
+  MAX_IMPROVEMENT,
+  buyDevelopmentCard,
+  changeWalls,
+  improvementLevel,
+  lowerImprovement,
+  movePirate,
+  raiseImprovement,
+  wallCount,
+} from "../lib/expansionTracking";
+import { clearRecords, loadRecords, saveRecord, summarize, type GameRecord } from "../lib/gameHistory";
+import {
   hostRoom,
   newRoomId,
   qrSvg,
@@ -29,6 +40,9 @@ import {
   barbariansAttacked,
   barbariansResolved,
   buildSpending,
+  clothCollected,
+  entryCost,
+  TRACKS,
   cardPlayedThisTurn,
   currentPlayer,
   cycleBuilding,
@@ -43,7 +57,6 @@ import {
   networkCorners,
   pairedPlayer,
   pendingPillage,
-  pieceCost,
   pillageCity,
   placeSetupPiece,
   playKnight,
@@ -71,6 +84,7 @@ import {
   type Payout,
   type Player,
   type PlayerColor,
+  type Track,
 } from "../lib/gameState";
 
 renderNav("play");
@@ -96,7 +110,10 @@ const EVENT_LABEL: Record<EventDie, string> = {
   green: "Green gate",
 };
 
-type Mode = "build" | "road" | "ship" | "knight" | "robber";
+type Mode = "build" | "road" | "ship" | "knight" | "robber" | "pirate";
+
+const ZOOM_STEPS = [1, 1.6, 2.4];
+const TRACK_LABEL: Record<Track, string> = { science: "Science", trade: "Trade", politics: "Politics" };
 
 const MODE_LABEL: Record<Mode, string> = {
   build: "Settlements",
@@ -104,6 +121,7 @@ const MODE_LABEL: Record<Mode, string> = {
   ship: "Ships",
   knight: "Knights",
   robber: "Robber",
+  pirate: "Pirate",
 };
 
 const KNIGHT_RANK = ["Basic", "Strong", "Mighty"] as const;
@@ -132,6 +150,7 @@ const MODE_HINT: Record<Mode, string> = {
   ship: "Tap a hex side on the water to launch a ship. Tap it again to remove it.",
   knight: "Tap a corner on your road to recruit a knight, or tap a knight for what it can do.",
   robber: "Tap the hex the robber moves to.",
+  pirate: "Tap the sea hex the pirate sails to.",
 };
 
 const EVENT_FACES: EventDie[] = ["ship", "ship", "ship", "yellow", "blue", "green"];
@@ -159,7 +178,7 @@ function setHtml(element: HTMLElement, html: string): void {
   element.innerHTML = html;
 }
 
-function playerTag(player: Player): string {
+function playerTag(player: Pick<Player, "name" | "color">): string {
   return `<span class="player-dot" style="--player-color: var(--player-${player.color})"></span>${escapeHtml(player.name)}`;
 }
 
@@ -186,13 +205,61 @@ function keepScreenAwake(): void {
   });
 }
 
+function recordHtml(record: GameRecord, open: boolean): string {
+  const [winner] = record.players;
+  const minutes = Math.max(1, Math.round((record.endedAt - record.startedAt) / 60000));
+  const mostRolled = record.rolls.indexOf(Math.max(...record.rolls)) + 2;
+  return `
+    <details class="play-record" ${open ? "open" : ""}>
+      <summary>
+        ${playerTag(winner)} won with ${winner.points}
+        <span class="play-muted">${new Date(record.endedAt).toLocaleDateString()} · ${escapeHtml(record.board)}</span>
+      </summary>
+      <div class="play-table-wrap">
+        <table class="play-table">
+          <thead><tr><th>Player</th><th>Points</th><th>Cards</th><th>Luck</th></tr></thead>
+          <tbody>
+            ${record.players
+              .map(
+                (player) => `
+              <tr>
+                <th scope="row">${playerTag(player)}</th>
+                <td class="play-table__total">${player.points}</td>
+                <td>${player.cards}</td>
+                <td>${player.luck >= 0 ? "+" : ""}${player.luck.toFixed(1)}</td>
+              </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+      <p class="play-muted">${record.turns} turns in about ${minutes} min, first to ${record.target}.
+        ${record.turns > 0 ? `The dice favoured ${mostRolled}, rolled ${record.rolls[mostRolled - 2]} times.` : ""}</p>
+    </details>`;
+}
+
 function renderEmpty(): void {
+  const records = loadRecords();
   root.innerHTML = `
     <section class="card play-empty">
       <h2>No game in progress</h2>
       <p>Pick a board, lay it out on the table, then press <strong>Start game</strong>.</p>
       <a class="btn" href="./map-generator.html">Choose a board</a>
-    </section>`;
+    </section>
+    ${
+      records.length === 0
+        ? ""
+        : `<section class="card play-empty">
+            <h2>Past games</h2>
+            ${records.map((record, index) => recordHtml(record, index === 0)).join("")}
+            <button class="play-link" id="play-clear-records">Clear past games</button>
+          </section>`
+    }`;
+  document.getElementById("play-clear-records")?.addEventListener("click", () => {
+    if (!confirm("Remove the record of every past game on this device?")) return;
+    clearRecords();
+    renderEmpty();
+  });
 }
 
 function renderSetup(game: GameState, entry: BoardEntry, board: CatanBoard): void {
@@ -341,6 +408,7 @@ function runGame(
   /** The corner of the knight whose menu is open, and of one picked up to be moved. */
   let knightMenu: string | undefined;
   let movingKnight: string | undefined;
+  let zoom = 0;
   const undoStack = viewing ? [] : loadUndo(initial);
   let host: Host | undefined;
   let viewers = 0;
@@ -360,8 +428,9 @@ function runGame(
     ${viewing ? `<p class="play-watching">Watching along · <span id="play-watch-status">Live</span></p>` : ""}
     <section class="card play-turn" id="play-turn"></section>
     <div class="play-toolbar" id="play-toolbar"></div>
-    <div id="play-board"></div>
+    <div class="play-board-scroll" id="play-board-scroll"><div id="play-board"></div></div>
     <section class="card" id="play-scores"></section>
+    <section class="card" id="play-city" hidden></section>
     <section class="card" id="play-stats"></section>
     <section class="card" id="play-history"></section>
     <section class="card" id="play-share"></section>
@@ -371,7 +440,10 @@ function runGame(
   const turnEl = root.querySelector("#play-turn") as HTMLElement;
   const toolbarEl = root.querySelector("#play-toolbar") as HTMLElement;
   const boardEl = root.querySelector("#play-board") as HTMLElement;
+  const boardScrollEl = root.querySelector("#play-board-scroll") as HTMLElement;
   const scoresEl = root.querySelector("#play-scores") as HTMLElement;
+  const cityEl = root.querySelector("#play-city") as HTMLElement;
+  const boardLabel = getBoardEntry(state.boardId)?.label ?? state.boardId;
   const statsEl = root.querySelector("#play-stats") as HTMLElement;
   const historyEl = root.querySelector("#play-history") as HTMLElement;
   const shareEl = root.querySelector("#play-share") as HTMLElement;
@@ -499,7 +571,7 @@ function runGame(
     const collecting = takings(last.payouts, "takes");
     let detail: string;
     if (last.total === 7) {
-      detail = `<p>Anyone holding more than seven cards discards half. ${escapeHtml(player.name)} moves the robber: tap its new hex.</p>`;
+      detail = `<p>Anyone holding more than seven cards discards half. ${escapeHtml(player.name)} moves the robber${seafaring ? ", or the pirate from the Placing row" : ""}: tap its new hex.</p>`;
     } else if (collecting.length > 0) {
       detail = `<ul class="play-payouts">${collecting.join("")}</ul>`;
     } else {
@@ -563,6 +635,11 @@ function runGame(
           : `${playerTag(players[entry.player])} takes ${AWARD_LABEL[entry.award]}`;
       }
       if (entry.kind === "barbarians") return barbarianOutcome(entry.defended, entry.players);
+      if (entry.kind === "metropolis") {
+        return entry.player === null
+          ? `Nobody holds the ${TRACK_LABEL[entry.track]} metropolis`
+          : `${playerTag(players[entry.player])} builds the ${TRACK_LABEL[entry.track]} metropolis`;
+      }
       const who = playerTag(players[entry.player]);
       switch (entry.kind) {
         case "roll": {
@@ -581,17 +658,27 @@ function runGame(
         case "pillage":
           return `${who} loses a city to the barbarians`;
         case "troop":
-          return `${who} ${KNIGHT_ACTION_TEXT[entry.action]} <span class="play-muted">${payoutText(knightCost(entry.action))}</span>`;
+          return `${who} ${KNIGHT_ACTION_TEXT[entry.action]}`;
         case "build":
-          return entry.free
-            ? `${who} places a ${entry.piece}`
-            : `${who} builds a ${entry.piece} <span class="play-muted">${payoutText(pieceCost(entry.piece))}</span>`;
+          return entry.free ? `${who} places a ${entry.piece}` : `${who} builds a ${entry.piece}`;
+        case "card":
+          return `${who} buys a development card`;
+        case "wall":
+          return `${who} builds a city wall`;
+        case "improve":
+          return `${who} raises ${TRACK_LABEL[entry.track]} to level ${entry.level}`;
+        case "pirate":
+          return `${who} moves the pirate`;
       }
     };
 
     const groups: string[] = [];
     for (let turn = state.turn; turn >= -1; turn--) {
-      const lines = (byTurn.get(turn) ?? []).map((entry) => `<li>${line(entry)}</li>`);
+      const lines = (byTurn.get(turn) ?? []).map((entry) => {
+        const cost = entryCost(entry);
+        const paid = cost && Object.keys(cost).length > 0 ? ` <span class="play-muted">${payoutText(cost)}</span>` : "";
+        return `<li>${line(entry)}${paid}</li>`;
+      });
       if (turn === -1) {
         lines.push(...takings(startingCards(state, vertices), "starts with"));
         if (lines.length === 0) continue;
@@ -638,9 +725,15 @@ function runGame(
       ${modeChips(
         (Object.keys(MODE_LABEL) as Mode[]).filter(
           (option) =>
-            (option !== "ship" || seafaring) && (option !== "knight" || state.citiesKnights)
+            (option !== "ship" || seafaring) &&
+            (option !== "pirate" || seafaring) &&
+            (option !== "knight" || state.citiesKnights)
         )
       )}
+      <div class="play-chips">
+        ${state.citiesKnights ? "" : `<button class="play-chip" data-action="buy-card">Buy development card</button>`}
+        <button class="play-chip" data-action="zoom">Zoom ${ZOOM_STEPS[zoom] === 1 ? "in" : `${ZOOM_STEPS[zoom]}x`}</button>
+      </div>
       <p class="play-muted">${movingKnight ? "Tap the corner the knight moves to." : MODE_HINT[mode]}</p>`;
   }
 
@@ -655,11 +748,20 @@ function runGame(
     // Cities & Knights has no Largest Army
     const army = !state.citiesKnights;
     const troops = knightStrength(state);
+    const cloth = clothCollected(state);
+    const villages = state.hexes.some((hex) => hex.type === "village");
     const winner = points.findIndex((total) => total >= state.targetPoints);
 
     return `
       <h2>Scores <span class="play-muted">first to ${state.targetPoints}</span></h2>
-      ${winner === -1 ? "" : `<p class="play-alert">${escapeHtml(state.players[winner].name)} has reached ${points[winner]} points.</p>`}
+      ${
+        winner === -1
+          ? ""
+          : `<div class="play-alert">
+              <p>${escapeHtml(state.players[winner].name)} has reached ${points[winner]} points.</p>
+              <div class="play-actions"><button class="btn btn-secondary" data-action="end">Finish and record the game</button></div>
+            </div>`
+      }
       <div class="play-table-wrap">
         <table class="play-table play-table--scores">
           <thead>
@@ -699,7 +801,45 @@ function runGame(
         highlighted number holds the award for two points: five roads${army ? " or three knights" : ""}
         at least, and more than anyone else.
         ${army ? "" : "Knights is the strength awake out of all a player has on the board."}
-        Use Other for victory point cards, metropolises and island bonuses.
+        ${villages ? `Cloth so far: ${state.players.map((player, i) => `${escapeHtml(player.name)} ${cloth[i]}`).join(", ")}; every two are a point.` : ""}
+        Use Other for victory point cards and island bonuses.
+      </p>`;
+  }
+
+  /** Cities & Knights only: the improvements, walls and metropolises that sit off the board. */
+  function cityHtml(): string {
+    const stepper = (action: string, key: string, value: number, held: boolean) => `
+      <td class="play-table__stepper">
+        <button data-action="${action}" data-value="${key}:-1" aria-label="One fewer">-</button>
+        <span class="play-award" data-held="${held}">${value}</span>
+        <button data-action="${action}" data-value="${key}:1" aria-label="One more">+</button>
+      </td>`;
+    return `
+      <h2>City improvements <span class="play-muted">levels out of ${MAX_IMPROVEMENT}</span></h2>
+      <div class="play-table-wrap">
+        <table class="play-table">
+          <thead>
+            <tr><th>Player</th>${TRACKS.map((track) => `<th>${TRACK_LABEL[track]}</th>`).join("")}<th>Walls</th></tr>
+          </thead>
+          <tbody>
+            ${state.players
+              .map(
+                (player, i) => `
+              <tr>
+                <th scope="row">${playerTag(player)}</th>
+                ${TRACKS.map((track) =>
+                  stepper("improve", `${i}:${track}`, improvementLevel(state, i, track), state.metropolis[track] === i)
+                ).join("")}
+                ${stepper("wall", String(i), wallCount(state, i), false)}
+              </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+      <p class="play-muted">
+        A highlighted level holds that track's metropolis, worth two points and safe from the
+        barbarians. Each level costs its own number in the track's commodity; a wall is two brick.
       </p>`;
   }
 
@@ -751,7 +891,9 @@ function runGame(
 
   function render(): void {
     if (boardStale || !pieceLayer) {
-      renderHexBoard(boardEl, board, state.hexes, state.robber ?? -1);
+      renderHexBoard(boardEl, board, state.hexes, state.robber ?? -1, state.pirate ?? -1);
+      boardEl.style.width = `${ZOOM_STEPS[zoom] * 100}%`;
+      boardEl.style.maxWidth = zoom === 0 ? "" : "none";
       pieceLayer = document.createElement("div");
       pieceLayer.className = "piece-layer";
       (boardEl.querySelector(".hex-board") as HTMLElement).appendChild(pieceLayer);
@@ -835,6 +977,8 @@ function runGame(
     setHtml(turnEl, turnHtml());
     setHtml(toolbarEl, toolbarHtml());
     setHtml(scoresEl, scoresHtml());
+    cityEl.hidden = !state.citiesKnights;
+    if (state.citiesKnights) setHtml(cityEl, cityHtml());
     setHtml(statsEl, statsHtml());
     setHtml(historyEl, historyHtml());
   }
@@ -902,7 +1046,7 @@ function runGame(
     builder = currentPlayer(state);
     robberMover = undefined;
     if (total === 7) mode = "robber";
-    commit(recordRoll(state, vertices, total, event));
+    commit(recordRoll(state, vertices, total, event, undefined, edges));
   }
 
   /** The facedown stack as it stands, with the hex being edited put back so it can be re-picked. */
@@ -1064,6 +1208,26 @@ function runGame(
       }
     },
     barbarians: () => commit(resolveBarbarians(state)),
+    "buy-card": () => commit(buyDevelopmentCard(state, builder)),
+    improve: (value) => {
+      const [seat, track, change] = value.split(":");
+      const act = change === "1" ? raiseImprovement : lowerImprovement;
+      commit(act(state, Number(seat), track as Track));
+    },
+    wall: (value) => {
+      const [seat, change] = value.split(":").map(Number);
+      commit(changeWalls(state, seat, change === 1 ? 1 : -1));
+    },
+    zoom: () => {
+      // keep whatever is in the middle of the view in the middle after the board changes size
+      const centre = (boardScrollEl.scrollLeft + boardScrollEl.clientWidth / 2) / boardScrollEl.scrollWidth;
+      const middle = (boardScrollEl.scrollTop + boardScrollEl.clientHeight / 2) / boardScrollEl.scrollHeight;
+      zoom = (zoom + 1) % ZOOM_STEPS.length;
+      boardStale = true;
+      render();
+      boardScrollEl.scrollLeft = centre * boardScrollEl.scrollWidth - boardScrollEl.clientWidth / 2;
+      boardScrollEl.scrollTop = middle * boardScrollEl.scrollHeight - boardScrollEl.clientHeight / 2;
+    },
     road: (value) => {
       const ship = placingMode() === "ship";
       if (!setupTurn(state)) {
@@ -1117,7 +1281,10 @@ function runGame(
       void renderShare();
     },
     end: () => {
-      if (!confirm("End this game? Its rolls and scores will be cleared.")) return;
+      if (!confirm("End this game? The result is kept under Past games.")) return;
+      // a game nobody rolled in is not worth remembering
+      if (state.rolls.length > 0) saveRecord(summarize(state, boardLabel));
+      host?.close();
       clearGame();
       window.location.reload();
     },
@@ -1143,6 +1310,11 @@ function runGame(
       robberMover = undefined;
       boardStale = true;
       commit(moveRobber(state, index, mover));
+    } else if (mode === "pirate") {
+      if (state.hexes[index].type !== "sea") return;
+      mode = "build";
+      boardStale = true;
+      commit(movePirate(state, index, robberMover ?? currentPlayer(state)));
     } else if (layout[index].type === "fog") {
       revealing = { index };
       renderReveal();

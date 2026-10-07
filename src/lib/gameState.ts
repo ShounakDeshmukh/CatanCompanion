@@ -5,7 +5,7 @@ import type {
   ResourceHexType,
 } from "../data/boards/types";
 import { RESOURCE_BY_HEX } from "../data/boards/types";
-import { BUILDING_COSTS, type Commodity } from "../data/costs";
+import { BUILDING_COSTS, IMPROVEMENT_TRACKS, type Commodity } from "../data/costs";
 import { hexPips, isResourceHex } from "./shuffle";
 import type { Edge, Vertex } from "./vertices";
 
@@ -33,6 +33,10 @@ export type BuildingKind = "settlement" | "city";
 export type Piece = BuildingKind | "road" | "ship";
 export type Award = "longestRoad" | "largestArmy";
 export type EventDie = "ship" | "yellow" | "blue" | "green";
+
+/** The three Cities & Knights improvement tracks, by the ids the cost data gives them. */
+export const TRACKS = ["science", "trade", "politics"] as const;
+export type Track = (typeof TRACKS)[number];
 
 export interface Player {
   name: string;
@@ -82,6 +86,11 @@ export type LedgerEntry = { turn: number } & (
   // the defenders if Catan held, otherwise whoever has to give up a city
   | { kind: "barbarians"; defended: boolean; players: number[] }
   | { kind: "pillage"; player: number }
+  | { kind: "card"; player: number }
+  | { kind: "improve"; player: number; track: Track; level: number }
+  | { kind: "wall"; player: number }
+  | { kind: "metropolis"; player: number | null; track: Track }
+  | { kind: "pirate"; player: number; hex: number }
 );
 
 /**
@@ -104,6 +113,14 @@ export interface GameState {
    */
   setup: string[] | null;
   robber: number | null;
+  /** Seafarers' second thief, which sits on a sea hex. Null until it is first placed. */
+  pirate: number | null;
+  /** Cities & Knights improvement levels, keyed `player:track`. Missing means none built. */
+  improvements: Record<string, number>;
+  /** City walls per player, keyed by seat. */
+  walls: Record<string, number>;
+  /** Who holds each track's metropolis. */
+  metropolis: Partial<Record<Track, number>>;
   /** Turns finished so far. The current turn has been rolled once `rolls` is longer than this. */
   turn: number;
   turnStartedAt: number;
@@ -144,6 +161,10 @@ export function newGame(boardId: string, hexes: Hex[], startedAt: number = Date.
     ships: [],
     setup: [],
     robber: desert === -1 ? null : desert,
+    pirate: null,
+    improvements: {},
+    walls: {},
+    metropolis: {},
     turn: 0,
     turnStartedAt: startedAt,
     rolls: [],
@@ -170,8 +191,23 @@ function cardsProduced(hex: Hex, kind: BuildingKind, citiesKnights: boolean): Ca
 function eachProduction(
   state: GameState,
   vertices: Vertex[],
+  edges: Edge[],
   visit: (player: number, hex: Hex, cards: Card[]) => void
 ): void {
+  // A cloth village pays one cloth to each player whose roads or ships reach it. Reaching
+  // is taken as having a piece on one of the village hex's sides.
+  const trading = new Set<string>();
+  for (const edge of edges) {
+    const player = state.roads[edge.id];
+    if (player === undefined) continue;
+    for (const index of edge.hexes) {
+      const hex = state.hexes[index];
+      if (hex.type !== "village" || trading.has(`${player}:${index}`)) continue;
+      trading.add(`${player}:${index}`);
+      visit(player, hex, ["cloth"]);
+    }
+  }
+
   for (const vertex of vertices) {
     const building = state.buildings[vertex.id];
     if (!building) continue;
@@ -184,9 +220,14 @@ function eachProduction(
   }
 }
 
-export function payoutForRoll(state: GameState, vertices: Vertex[], total: number): Payout[] {
+export function payoutForRoll(
+  state: GameState,
+  vertices: Vertex[],
+  total: number,
+  edges: Edge[] = []
+): Payout[] {
   const payouts: Payout[] = state.players.map(() => ({}));
-  eachProduction(state, vertices, (player, hex, cards) => {
+  eachProduction(state, vertices, edges, (player, hex, cards) => {
     if (hex.number !== total && hex.secondNumber !== total) return;
     for (const card of cards) payouts[player][card] = (payouts[player][card] ?? 0) + 1;
   });
@@ -194,9 +235,13 @@ export function payoutForRoll(state: GameState, vertices: Vertex[], total: numbe
 }
 
 /** A chit's pips are the number of ways to roll it out of 36. */
-export function expectedProduction(state: GameState, vertices: Vertex[]): number[] {
+export function expectedProduction(
+  state: GameState,
+  vertices: Vertex[],
+  edges: Edge[] = []
+): number[] {
   const expected = state.players.map(() => 0);
-  eachProduction(state, vertices, (player, hex, cards) => {
+  eachProduction(state, vertices, edges, (player, hex, cards) => {
     expected[player] += (hexPips(hex) * cards.length) / 36;
   });
   return expected;
@@ -216,14 +261,15 @@ export function recordRoll(
   vertices: Vertex[],
   total: number,
   event?: EventDie,
-  at: number = Date.now()
+  at: number = Date.now(),
+  edges: Edge[] = []
 ): GameState {
   if (hasRolled(state)) return state;
   const roll: Roll = {
     total,
     event,
-    payouts: payoutForRoll(state, vertices, total),
-    expected: expectedProduction(state, vertices),
+    payouts: payoutForRoll(state, vertices, total, edges),
+    expected: expectedProduction(state, vertices, edges),
     at,
   };
   return logged(
@@ -289,7 +335,7 @@ type NewEntry = LedgerEntry extends infer Entry
     : never
   : never;
 
-function logged(state: GameState, entry: NewEntry): GameState {
+export function logged(state: GameState, entry: NewEntry): GameState {
   const stamped = { ...entry, turn: setupTurn(state) ? -1 : state.turn } as LedgerEntry;
   return { ...state, ledger: [...state.ledger, stamped] };
 }
@@ -606,10 +652,15 @@ export function barbarianOutlook(state: GameState): BarbarianOutlook {
   const cities = cityCounts.reduce((sum, count) => sum + count, 0);
   const defended = strength.reduce((sum, level) => sum + level, 0) >= cities;
 
+  // a metropolis cannot be pillaged, so a player whose cities are all metropolises is safe
+  const metropolises = state.players.map(() => 0);
+  for (const holder of Object.values(state.metropolis)) metropolises[holder]++;
   const seats = state.players.map((_, player) => player);
-  const contenders = defended ? seats : seats.filter((player) => cityCounts[player] > 0);
+  const contenders = defended
+    ? seats
+    : seats.filter((player) => cityCounts[player] > metropolises[player]);
   const levels = contenders.map((player) => strength[player]);
-  const mark = defended ? Math.max(0, ...levels) : Math.min(...levels);
+  const mark = defended ? Math.max(0, ...levels) : Math.min(Infinity, ...levels);
   // nobody defends Catan with no knights awake
   const players = defended && mark === 0 ? [] : contenders.filter((player) => strength[player] === mark);
   return { cities, strength, defended, players };
@@ -757,7 +808,22 @@ export function playerPoints(state: GameState): number[] {
   for (const building of Object.values(state.buildings)) {
     points[building.player] += building.kind === "city" ? 2 : 1;
   }
+  for (const holder of Object.values(state.metropolis)) points[holder] += 2;
+  clothCollected(state).forEach((cloth, player) => (points[player] += Math.floor(cloth / 2)));
   return points;
+}
+
+/**
+ * Cloth tokens taken from villages, two of which are worth a point. Only counted on maps
+ * that have villages, since Cities & Knights uses the same word for a commodity.
+ */
+export function clothCollected(state: GameState): number[] {
+  const cloth = state.players.map(() => 0);
+  if (!state.hexes.some((hex) => hex.type === "village")) return cloth;
+  for (const roll of state.rolls) {
+    roll.payouts.forEach((payout, player) => (cloth[player] += payout.cloth ?? 0));
+  }
+  return cloth;
 }
 
 export interface ProductionTotals {
@@ -791,14 +857,35 @@ export function knightCost(action: KnightAction): Payout {
   return COSTS[`knight-${action}`] ?? {};
 }
 
-/** Cards each player has paid the bank for what they built, opening pieces aside. */
+const COMMODITY_BY_TRACK = Object.fromEntries(
+  IMPROVEMENT_TRACKS.map(({ id, commodity }) => [id, commodity])
+) as Record<Track, Commodity>;
+
+/** What a line of the history cost its player, if it cost anything. */
+export function entryCost(entry: LedgerEntry): Payout | undefined {
+  switch (entry.kind) {
+    case "build":
+      return entry.free ? undefined : pieceCost(entry.piece);
+    case "troop":
+      return knightCost(entry.action);
+    case "card":
+      return COSTS["dev-card"];
+    case "wall":
+      return COSTS["city-wall"];
+    case "improve":
+      // each level costs its own number in the track's commodity
+      return { [COMMODITY_BY_TRACK[entry.track]]: entry.level };
+    default:
+      return undefined;
+  }
+}
+
+/** Cards each player has paid the bank, opening pieces aside. */
 export function buildSpending(state: GameState): number[] {
   const spent = state.players.map(() => 0);
   for (const entry of state.ledger) {
-    let cost: Payout;
-    if (entry.kind === "build" && !entry.free) cost = pieceCost(entry.piece);
-    else if (entry.kind === "troop") cost = knightCost(entry.action);
-    else continue;
+    const cost = entryCost(entry);
+    if (!cost || !("player" in entry) || entry.player === null) continue;
     for (const count of Object.values(cost)) spent[entry.player] += count;
   }
   return spent;

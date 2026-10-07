@@ -13,6 +13,9 @@ import { renderFacedownStack } from "../lib/facedownStack";
 import { decodeShareHash, encodeShareHash } from "../lib/shareLink";
 import { newGame } from "../lib/gameState";
 import { loadGame, saveGame } from "../lib/gameCodec";
+import { boardStats, type Yield } from "../lib/boardStats";
+import { boardGeometry } from "../lib/vertices";
+import { HEX_LABEL } from "../lib/hexBoard";
 
 renderNav("map-generator");
 
@@ -106,6 +109,71 @@ function syncBoardSpecificControls(board: CatanBoard): void {
   if (!islandsMoveable) minIslands.value = "1";
 }
 
+const YIELD_LABEL: Record<Yield, string> = {
+  brick: "Brick",
+  wood: "Wood",
+  wool: "Sheep",
+  wheat: "Wheat",
+  ore: "Ore",
+  choice: "Gold",
+};
+
+/**
+ * How the dealt board is balanced: how often each resource pays out, and the strongest
+ * places to settle. Hovering or tapping a spot lights up its hexes on the board.
+ */
+function renderBalance(board: CatanBoard, hexes: Hex[]): HTMLElement {
+  const stats = boardStats(hexes, boardGeometry(board).vertices);
+  const most = Math.max(1, ...Object.values(stats.pips));
+  const section = document.createElement("section");
+  section.className = "card board-balance";
+  section.innerHTML = `
+    <h2>Balance</h2>
+    <div class="board-balance__grid">
+      <div>
+        <h3>Pips per resource</h3>
+        ${(Object.keys(YIELD_LABEL) as Yield[])
+          .filter((resource) => stats.hexes[resource])
+          .map(
+            (resource) => `
+          <div class="board-balance__row">
+            <span>${YIELD_LABEL[resource]}</span>
+            <span class="board-balance__bar"><span style="width: ${((stats.pips[resource] ?? 0) / most) * 100}%; background: var(--color-${resource === "choice" ? "gold" : resource})"></span></span>
+            <span>${stats.pips[resource]} on ${stats.hexes[resource]}</span>
+          </div>`
+          )
+          .join("")}
+      </div>
+      <div>
+        <h3>Strongest spots</h3>
+        <ol class="board-balance__spots">
+          ${stats.corners
+            .map(
+              (corner) => `
+            <li tabindex="0" data-hexes="${corner.hexes.join(",")}">
+              <strong>${corner.pips} pips</strong>
+              ${corner.hexes.map((index) => `${HEX_LABEL[hexes[index].type]} ${hexes[index].number}`).join(", ")}
+            </li>`
+            )
+            .join("")}
+        </ol>
+      </div>
+    </div>
+    ${hexes.some((hex) => hex.type === "fog") ? `<p class="board-balance__note">Fog hexes are unknown until explored and are not counted.</p>` : ""}`;
+
+  const light = (indices: string | undefined, on: boolean) => {
+    for (const index of indices?.split(",") ?? []) {
+      root.querySelector(`.hex[data-hex-index="${index}"]`)?.classList.toggle("hex--lit", on);
+    }
+  };
+  for (const spot of section.querySelectorAll<HTMLElement>("[data-hexes]")) {
+    for (const [event, on] of [["mouseenter", true], ["focus", true], ["mouseleave", false], ["blur", false]] as const) {
+      spot.addEventListener(event, () => light(spot.dataset.hexes, on));
+    }
+  }
+  return section;
+}
+
 function renderGeneratedBoard(
   boardId: string,
   seed: number,
@@ -120,6 +188,7 @@ function renderGeneratedBoard(
   root.appendChild(boardHost);
   renderHexBoard(boardHost, board, hexes);
   if (board.facedownStack) root.appendChild(renderFacedownStack(board.facedownStack));
+  root.appendChild(renderBalance(board, hexes));
   history.replaceState(null, "", encodeShareHash({ boardId, seed, constraints }));
   shownBoard = { boardId, hexes };
 }

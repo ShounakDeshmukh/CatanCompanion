@@ -183,6 +183,11 @@
   background: url("../assets/robber.svg") center / contain no-repeat;
 }
 
+/* a sea-blue cast, so the pirate is not mistaken for the robber */
+.hex-robber--pirate {
+  filter: sepia(1) hue-rotate(170deg) saturate(2.4) brightness(1.5);
+}
+
 /* Holds the harbor's plaque over its hex, turned to face the served edge (see buildPort). */
 .hex-port {
   position: absolute;
@@ -424,5 +429,84 @@
 @media print {
   .facedown-stack table {
     break-inside: avoid;
+  }
+}
+/* a board spot picked out from the balance panel */
+.hex--lit::after {
+  filter: brightness(1.3) saturate(1.2);
+}
+
+.board-balance {
+  max-width: 760px;
+  margin: 1.75rem auto 0;
+}
+
+.board-balance h2 {
+  font-size: 1.15rem;
+}
+
+.board-balance h3 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.board-balance__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem 2rem;
+}
+
+.board-balance__row {
+  display: grid;
+  grid-template-columns: 4rem 1fr 5.5rem;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.15rem 0;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.board-balance__bar {
+  height: 0.7rem;
+  border-radius: 999px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.board-balance__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.board-balance__spots {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.board-balance__spots li {
+  padding: 0.15rem 0.3rem;
+  border-radius: 6px;
+  cursor: default;
+}
+
+.board-balance__spots li:is(:hover, :focus) {
+  background: var(--color-border);
+  outline: none;
+}
+
+.board-balance__note {
+  margin: 0.8rem 0 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+@media print {
+  .board-balance {
+    display: none;
   }
 }

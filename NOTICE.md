@@ -46,3 +46,19 @@ The resource, building, and commodity SVGs used in the cost reference and map UI
 contributors to that collection. Their icons are distributed under the
 [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) license.
 
+
+
+### Artwork
+
+The terrain, harbor and robber artwork in `src/assets` was made for this project. It is
+drawn procedurally as SVG and shipped as WebP images rendered from those SVGs; it does not
+trace or reproduce the published CATAN tiles. The parchment texture is generated the same
+way.
+
+### Libraries
+
+- [PeerJS](https://peerjs.com) (MIT) connects a game's host to its viewers. It uses the
+  PeerJS project's public broker to introduce the two browsers; game data then travels
+  directly between them and is not sent to any server of this project's.
+- [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT) draws the
+  QR code for a viewer link.

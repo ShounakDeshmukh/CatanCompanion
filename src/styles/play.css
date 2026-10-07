@@ -600,6 +600,27 @@
   pointer-events: none;
 }
 
+/* When zoomed, the board is wider than the page and pans by scrolling inside this box. */
+.play-board-scroll {
+  overflow: auto;
+  max-height: 85vh;
+  -webkit-overflow-scrolling: touch;
+}
+
+.play-record {
+  border-top: 1px solid var(--color-border);
+  padding: 0.6rem 0;
+}
+
+.play-record summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.play-record summary .play-muted {
+  margin-left: 0.5rem;
+}
+
 .play-end {
   text-align: center;
 }

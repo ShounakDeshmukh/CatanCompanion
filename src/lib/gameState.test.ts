@@ -45,7 +45,17 @@ import {
   toggleRoad,
   type GameState,
 } from "./gameState";
+import { boardStats } from "./boardStats";
+import {
+  buyDevelopmentCard,
+  changeWalls,
+  improvementLevel,
+  lowerImprovement,
+  movePirate,
+  raiseImprovement,
+} from "./expansionTracking";
 import { parseGame } from "./gameCodec";
+import { summarize } from "./gameHistory";
 import { hexPips } from "./shuffle";
 import { boardGeometry } from "./vertices";
 
@@ -552,4 +562,109 @@ test("the barbarians are beaten by enough active knights and pillage the weakest
   assert.equal(pillaged.buildings[spots[1]].kind, "settlement");
   assert.deepEqual(pendingPillage(pillaged), []);
   assert.ok(parseGame(JSON.parse(JSON.stringify(pillaged))));
+});
+
+test("development cards and walls are charged to whoever bought them", () => {
+  let state: GameState = { ...startedGame(), setup: null };
+  state = buyDevelopmentCard(state, 1);
+  state = changeWalls(changeWalls(state, 0, 1), 0, 1);
+  // a card is three cards, a wall two bricks
+  assert.deepEqual(buildSpending(state), [4, 3]);
+
+  state = changeWalls(state, 0, -1);
+  assert.deepEqual(buildSpending(state), [2, 3]);
+  assert.equal(changeWalls(changeWalls(changeWalls(state, 0, 1), 0, 1), 0, 1).walls[0], 3);
+});
+
+test("the first to the fourth level holds a metropolis until someone reaches the fifth", () => {
+  const build = (state: GameState, player: number, levels: number) => {
+    for (let level = 0; level < levels; level++) state = raiseImprovement(state, player, "trade");
+    return state;
+  };
+  let state = build({ ...startedGame(), setup: null, citiesKnights: true }, 0, 3);
+  assert.equal(state.metropolis.trade, undefined);
+  // levels one to three cost 1 + 2 + 3 cloth
+  assert.deepEqual(buildSpending(state), [6, 0]);
+
+  state = build(state, 0, 1);
+  assert.equal(state.metropolis.trade, 0);
+  assert.deepEqual(playerPoints(state), [2, 0]);
+
+  // matching the holder is not enough; passing them is
+  state = build(state, 1, 4);
+  assert.equal(state.metropolis.trade, 0);
+  state = build(state, 1, 1);
+  assert.equal(state.metropolis.trade, 1);
+  assert.equal(build(state, 0, 1).metropolis.trade, 1);
+
+  // taking a level back as a correction hands it back
+  state = lowerImprovement(state, 1, "trade");
+  assert.equal(improvementLevel(state, 1, "trade"), 4);
+  assert.equal(state.metropolis.trade, 1);
+  assert.equal(lowerImprovement(lowerImprovement(state, 1, "trade"), 0, "trade").metropolis.trade, undefined);
+  assert.ok(parseGame(JSON.parse(JSON.stringify(state))));
+});
+
+test("a player whose only city is a metropolis is safe from the barbarians", () => {
+  const free = vertices.filter((v) => v.hexes.some((i) => hexes[i].type !== "sea"));
+  let state: GameState = { ...startedGame(), setup: null, citiesKnights: true };
+  for (const [seat, corner] of [[0, free[0].id], [1, free[30].id]] as const) {
+    state = cycleBuilding(cycleBuilding(state, edges, corner, seat), edges, corner, seat);
+  }
+  assert.deepEqual(barbarianOutlook(state).players, [0, 1]);
+  for (let level = 0; level < 4; level++) state = raiseImprovement(state, 0, "science");
+  assert.deepEqual(barbarianOutlook(state).players, [1]);
+});
+
+test("a cloth village pays whoever has a ship on it, and two cloth make a point", () => {
+  const cloth = buildBoard(getBoardEntry("sf-cloth-for-catan")!.template);
+  const layout = cloth.recommendedLayout;
+  const geometry = boardGeometry(cloth);
+  const village = layout.findIndex((hex) => hex.type === "village");
+  const side = geometry.edges.find((edge) => edge.hexes.includes(village))!;
+  const number = layout[village].number as number;
+
+  let state: GameState = { ...startedGame(), setup: null, hexes: layout };
+  state = toggleRoad(state, geometry.edges, side.id, 1, { ship: true });
+  assert.deepEqual(payoutForRoll(state, geometry.vertices, number, geometry.edges)[1], { cloth: 1 });
+  // without the map's sides the village cannot be reached, which is how old callers behave
+  assert.deepEqual(payoutForRoll(state, geometry.vertices, number)[1], {});
+
+  for (let roll = 0; roll < 3; roll++) {
+    state = endTurn(recordRoll(state, geometry.vertices, number, undefined, 0, geometry.edges));
+  }
+  assert.deepEqual(playerPoints(state), [0, 1]);
+});
+
+test("the pirate is tracked and written into the history", () => {
+  const sea = hexes.findIndex((hex) => hex.type === "sea");
+  const state = movePirate({ ...startedGame(), setup: null }, sea, 1);
+  assert.equal(state.pirate, sea);
+  assert.deepEqual(state.ledger.at(-1), { kind: "pirate", turn: 0, player: 1, hex: sea });
+  assert.equal(parseGame(JSON.parse(JSON.stringify(state)))?.pirate, sea);
+});
+
+test("a finished game is summed up best player first", () => {
+  let state: GameState = { ...startedGame(), setup: null };
+  state = cycleBuilding(state, edges, cornerOf(hexIndex("forest")).id, 1);
+  state = recordRoll(state, vertices, hexes[hexIndex("forest")].number as number);
+  const record = summarize(state, "Catan (3-4 players)", 99);
+  assert.deepEqual(record.players.map((player) => [player.name, player.points, player.cards]), [
+    ["Ben", 1, 1],
+    ["Asha", 0, 0],
+  ]);
+  assert.equal(record.rolls.reduce((sum, count) => sum + count, 0), 1);
+  assert.equal(record.turns, 1);
+});
+
+test("board statistics total the pips and rank the best corners", () => {
+  const stats = boardStats(hexes, vertices, 3);
+  // the base game's eighteen discs carry 58 pips between them
+  assert.equal(Object.values(stats.pips).reduce((sum, pips) => sum + pips, 0), 58);
+  assert.deepEqual(stats.hexes, { wood: 4, wool: 4, wheat: 4, brick: 3, ore: 3 });
+  assert.equal(stats.corners.length, 3);
+  assert.ok(stats.corners[0].pips >= stats.corners[2].pips);
+  for (const corner of stats.corners) {
+    assert.equal(corner.pips, corner.hexes.reduce((sum, i) => sum + hexPips(hexes[i]), 0));
+  }
 });

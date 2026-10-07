@@ -1,6 +1,7 @@
 import type { Hex, HexType, NumberChitValue, PortType } from "../data/boards/types";
 import {
   PLAYER_COLORS,
+  TRACKS,
   type Building,
   type Card,
   type EventDie,
@@ -193,7 +194,25 @@ export function parseGame(raw: unknown): GameState | undefined {
         ? { kind: "troop", turn, player, action: item.action }
         : undefined;
     }
-    if (item.kind === "knight" || item.kind === "roadBuilding" || item.kind === "pillage") {
+    if (item.kind === "metropolis") {
+      if (!isHolder(player) || !isOneOf(TRACKS, item.track)) return undefined;
+      return { kind: "metropolis", turn, player, track: item.track };
+    }
+    if (!isSeat(player)) return undefined;
+    if (item.kind === "improve") {
+      if (!isOneOf(TRACKS, item.track) || !isCount(item.level)) return undefined;
+      return { kind: "improve", turn, player, track: item.track, level: item.level };
+    }
+    if (item.kind === "pirate") {
+      return isIndex(item.hex, hexes.length) ? { kind: "pirate", turn, player, hex: item.hex } : undefined;
+    }
+    if (
+      item.kind === "knight" ||
+      item.kind === "roadBuilding" ||
+      item.kind === "pillage" ||
+      item.kind === "card" ||
+      item.kind === "wall"
+    ) {
       return { kind: item.kind, turn, player };
     }
     if (item.kind === "roll") {
@@ -228,6 +247,16 @@ export function parseGame(raw: unknown): GameState | undefined {
   }
   if (ledger.some((entry) => entry.kind === "roll" && entry.roll >= rolls.length)) return undefined;
 
+  const counts = (value: unknown) =>
+    parseRecord(value ?? {}, (count) => (isCount(count) ? count : undefined));
+  const improvements = counts(raw.improvements);
+  const walls = counts(raw.walls);
+  const metropolis = parseRecord(raw.metropolis ?? {}, (seat) => (isSeat(seat) ? seat : undefined));
+  const pirate = raw.pirate ?? null;
+  if (!improvements || !walls || !metropolis) return undefined;
+  if (!Object.keys(metropolis).every((track) => isOneOf(TRACKS, track))) return undefined;
+  if (!(pirate === null || isIndex(pirate, hexes.length))) return undefined;
+
   const owed = raw.freeRoads ?? null;
   const freeRoads =
     isObject(owed) && isSeat(owed.player) && isCount(owed.left)
@@ -251,6 +280,10 @@ export function parseGame(raw: unknown): GameState | undefined {
     ships,
     setup,
     robber: raw.robber,
+    pirate,
+    improvements,
+    walls,
+    metropolis,
     turn,
     turnStartedAt: typeof raw.turnStartedAt === "number" ? raw.turnStartedAt : raw.startedAt,
     rolls,
