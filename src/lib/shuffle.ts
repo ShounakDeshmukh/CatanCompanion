@@ -40,6 +40,15 @@ export const UNCONSTRAINED: ShuffleConstraints = {
   minIslandCount: 1,
 };
 
+/** What the generator starts with: the fairness rules most tables play by. */
+export const DEFAULT_CONSTRAINTS: ShuffleConstraints = {
+  ...UNCONSTRAINED,
+  noAdjacentSixEight: true,
+  noAdjacentTwoTwelve: true,
+  noAdjacentPairs: true,
+  maxConnectedLikeTerrain: 1,
+};
+
 const MAX_ATTEMPTS = 20_000;
 
 /**
@@ -68,11 +77,11 @@ export function randomSeed(): number {
   return Math.floor(Math.random() * 0xffffffff);
 }
 
-function isResourceHex(hex: Hex): hex is Hex & { type: ResourceHexType } {
+export function isResourceHex(hex: Hex): hex is Hex & { type: ResourceHexType } {
   return hex.type in RESOURCE_BY_HEX;
 }
 
-function hexPips(hex: Hex): number {
+export function hexPips(hex: Hex): number {
   if (hex.number === undefined) return 0;
   return pipsForNumber(hex.number) + (hex.secondNumber ? pipsForNumber(hex.secondNumber) : 0);
 }
@@ -94,7 +103,7 @@ function groupPositions(
   return groups;
 }
 
-function shuffleInPlace<T>(items: T[], rng: () => number): void {
+export function shuffleInPlace<T>(items: T[], rng: () => number): void {
   for (let i = items.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
     [items[i], items[j]] = [items[j], items[i]];

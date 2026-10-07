@@ -11,6 +11,7 @@ export default defineConfig({
         main: resolve(__dirname, "index.html"),
         rules: resolve(__dirname, "rules.html"),
         mapGenerator: resolve(__dirname, "map-generator.html"),
+        play: resolve(__dirname, "play.html"),
         costCards: resolve(__dirname, "cost-cards.html"),
       },
     },

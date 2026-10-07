@@ -1,0 +1,605 @@
+/* The playing pieces keep their box colours in either theme, like the number chits do. */
+:root {
+  --player-red: #c8322b;
+  --player-blue: #2f6fc1;
+  --player-white: #f2efe6;
+  --player-orange: #e08a1e;
+  --player-green: #3d8b40;
+  --player-brown: #7a4a2a;
+  --player-black: #26221f;
+  --player-gray: #8b8f94;
+  --player-purple: #7b4bb0;
+  --player-pink: #e27aa6;
+  --player-lime: #a6d42a;
+}
+
+.play-page {
+  display: block;
+}
+
+#play-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.play-page h2 {
+  font-size: 1.25rem;
+  margin: 0 0 0.6rem;
+}
+
+.play-page p {
+  margin: 0 0 0.6rem;
+}
+
+.play-muted,
+.play-page h2 .play-muted {
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.play-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.play-alert {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.8rem;
+  font-weight: 600;
+}
+
+.player-dot {
+  display: inline-block;
+  width: 0.75em;
+  height: 0.75em;
+  margin-right: 0.4em;
+  border-radius: 50%;
+  background: var(--player-color);
+  /* a light ring inside a dark one, so black and white both stand out in either theme */
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.55), 0 0 0 2px rgb(0 0 0 / 0.45);
+}
+
+.play-empty,
+.play-setup {
+  max-width: 34rem;
+  margin: 2rem auto 0;
+}
+
+.play-setup__players {
+  margin-bottom: 0.75rem;
+}
+
+.play-setup__player,
+.play-setup__option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.play-setup input[type="text"],
+.play-setup input[type="number"],
+.play-setup select {
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.play-setup input[type="text"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.play-setup input[type="number"] {
+  width: 4.5rem;
+}
+
+.play-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.play-turn__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.3rem 1rem;
+}
+
+/* The pad is tapped every turn by whoever is nearest the phone, so the keys are large. */
+.play-pad {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
+}
+
+/* They stand for the number discs, so they are cut from the same parchment. */
+.play-pad__key {
+  min-height: 3rem;
+  border: 1px solid var(--parchment-edge);
+  border-radius: 8px;
+  background: var(--parchment-grain), var(--parchment-sheet);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.4),
+    inset 0 0 0 1px rgb(255 251 233 / 0.6);
+  color: var(--parchment-ink);
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.play-pad__key:active {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.play-pad__key--seven {
+  color: #b3311b;
+}
+
+.play-pad__key--wide {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.play-next {
+  margin: 0.4rem 0 0.8rem;
+}
+
+.play-next .btn {
+  width: 100%;
+  padding: 0.8rem 1.3rem;
+  font-size: 1.05rem;
+}
+
+.play-history li ul {
+  margin: 0.1rem 0 0.2rem;
+}
+
+.play-rolled {
+  font-size: 1.1rem;
+}
+
+.play-rolled__total {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+}
+
+.play-payouts {
+  margin: 0 0 0.6rem;
+  padding: 0;
+  list-style: none;
+  font-size: 1.1rem;
+}
+
+.play-payouts li {
+  padding: 0.25rem 0;
+}
+
+.play-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.play-chips[hidden] {
+  display: none;
+}
+
+.play-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  padding: 0.35rem 0.8rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.play-chip[aria-pressed="true"] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.play-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.play-link:disabled {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  cursor: default;
+}
+
+#play-board[data-mode="robber"] :is(.hex, .hex-top > *),
+.play-page :is(.hex[title="Fog"], .hex-unknown) {
+  cursor: pointer;
+}
+
+/*
+ * During play the robber stands on numbered hexes, where the disc - which makes its own
+ * stacking context by being rotated - would otherwise cover it. Raised above the disc and
+ * drawn larger, it stands on the number the way the wooden piece does.
+ */
+.play-page .hex-robber {
+  z-index: 1;
+  width: calc(var(--hex-size) * 0.46);
+}
+
+/*
+ * Pieces are drawn in one layer over the whole grid rather than inside each hex, because a
+ * corner belongs to up to three hexes and later hexes would paint over a marker owned by an
+ * earlier one. The layer rotates with the grid, so it needs no handling for Seafarers maps.
+ */
+.piece-layer {
+  grid-area: 1 / 1 / -1 / -1;
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/*
+ * Neighbouring corners sit 0.58 of a hex apart and neighbouring side midpoints 0.5, which
+ * caps how large a tap target can be. A corner is only 0.29 from the sides around it, so the
+ * two kinds cannot both be live at once - hence the separate placing modes.
+ */
+.vertex,
+.edge {
+  position: absolute;
+  width: calc(var(--hex-size) * 0.46);
+  aspect-ratio: 1;
+  padding: 0;
+  border: none;
+  background: none;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+}
+
+[data-mode="build"] .vertex:not(.vertex--knight),
+[data-mode="knight"] :is(.vertex--open, .vertex--knight),
+[data-mode="road"] .edge,
+[data-mode="ship"] .edge {
+  pointer-events: auto;
+}
+
+.vertex::before,
+.edge::before {
+  content: "";
+  position: absolute;
+  inset: 36%;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.6);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.4);
+}
+
+.edge--road::before,
+.edge--ship::before {
+  inset: 39% -4%;
+  border-radius: 2px;
+  background: var(--player-color);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.6), 0 0 0 2.5px #1d140c, 0 1px 2px rgb(0 0 0 / 0.5);
+  transform: rotate(var(--edge-angle));
+}
+
+/* a ship is a road with a pale stripe down it, so the two tell apart at a glance */
+.edge--ship::before {
+  background: linear-gradient(
+    var(--player-color) 30%,
+    rgb(255 255 255 / 0.85) 30% 70%,
+    var(--player-color) 70%
+  );
+}
+
+.vertex--settlement::before,
+.vertex--city::before {
+  inset: 22%;
+  border-radius: 3px;
+  background: var(--player-color);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.6), 0 0 0 2.5px #1d140c, 0 1px 3px rgb(0 0 0 / 0.5);
+}
+
+.vertex--city::before {
+  inset: 8%;
+  outline: 2px solid rgb(255 255 255 / 0.85);
+  outline-offset: -5px;
+}
+
+/* A knight is a round token carrying its strength. Asleep, it is hollowed out and faded. */
+.vertex--knight {
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-family: var(--font-heading);
+  font-size: calc(var(--hex-size) * 0.17);
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 0 0 2px #000, 0 0 2px #000;
+}
+
+.vertex--knight::before {
+  inset: 12%;
+  background: var(--player-color);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.6), 0 0 0 2.5px #1d140c, 0 1px 3px rgb(0 0 0 / 0.5);
+}
+
+.vertex--knight span {
+  position: relative;
+}
+
+.vertex--knight[data-active="false"]::before {
+  opacity: 0.55;
+  box-shadow: 0 0 0 2px #1d140c;
+}
+
+.play-alert p {
+  margin: 0 0 0.4rem;
+}
+
+.play-alert .btn {
+  color: inherit;
+  border-color: currentcolor;
+}
+
+.play-paired {
+  border-left: 3px solid var(--color-accent);
+  padding-left: 0.6rem;
+}
+
+.play-award {
+  display: inline-block;
+  min-width: 2rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  text-align: center;
+}
+
+.play-award[data-held="true"] {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  font-weight: 700;
+}
+
+.play-reveal {
+  max-width: min(30rem, calc(100vw - 2rem));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  padding: 1.25rem;
+}
+
+.play-reveal::backdrop {
+  background: rgb(0 0 0 / 0.55);
+}
+
+.play-reveal__left {
+  margin-left: 0.4rem;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.play-table-wrap {
+  overflow-x: auto;
+}
+
+.play-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.play-table th,
+.play-table td {
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  white-space: nowrap;
+  border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 560px) {
+  .play-table th,
+  .play-table td {
+    padding: 0.4rem 0.3rem;
+  }
+
+  /* the total already includes the board points, so that column is the one to give up */
+  .play-table--scores :is(th, td):nth-child(2) {
+    display: none;
+  }
+
+  .play-table__stepper button {
+    width: 1.7rem;
+    height: 1.7rem;
+  }
+
+  .play-table__stepper span {
+    min-width: 1.1rem;
+  }
+}
+
+.play-table thead th {
+  border-top: none;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.play-table tbody th {
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+
+.play-table .play-chip {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.play-table__stepper button {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.play-table__stepper span {
+  display: inline-block;
+  min-width: 1.6rem;
+  text-align: center;
+}
+
+.play-table__total {
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+
+.histogram {
+  display: grid;
+  grid-template-columns: repeat(11, 1fr);
+  gap: 0.3rem;
+  margin-bottom: 0.4rem;
+}
+
+.histogram__column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.histogram__plot {
+  position: relative;
+  width: 100%;
+  height: 6rem;
+  display: flex;
+  align-items: flex-end;
+}
+
+.histogram__bar {
+  width: 100%;
+  background: var(--color-accent);
+  border-radius: 3px 3px 0 0;
+}
+
+.histogram__expected {
+  position: absolute;
+  left: -0.15rem;
+  right: -0.15rem;
+  border-top: 2px solid var(--color-text);
+}
+
+.histogram__count {
+  color: var(--color-text-muted);
+}
+
+.histogram__total {
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+
+.play-history {
+  max-height: 24rem;
+  overflow-y: auto;
+}
+
+.play-history h3 {
+  margin: 0.9rem 0 0.2rem;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.play-history h3:first-child {
+  margin-top: 0;
+}
+
+.play-history ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.play-history li {
+  padding: 0.1rem 0 0.1rem 0.9rem;
+}
+
+.play-share {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+/* the code is black on white whatever the theme, or phone cameras struggle with it */
+.play-share__code {
+  width: 11rem;
+  padding: 0.4rem;
+  border-radius: 8px;
+  background: #fff;
+  line-height: 0;
+}
+
+.play-share__code + div {
+  flex: 1 1 14rem;
+}
+
+.play-share__link {
+  width: 100%;
+  margin-bottom: 0.6rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.play-watching {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+/* a viewer sees what the host sees, minus everything that would change the game */
+.play--viewing
+  :is(.play-pad, .play-link, .play-actions, #play-toolbar, .play-end, .play-table__stepper button) {
+  display: none;
+}
+
+.play--viewing .play-chip {
+  pointer-events: none;
+}
+
+.play-end {
+  text-align: center;
+}

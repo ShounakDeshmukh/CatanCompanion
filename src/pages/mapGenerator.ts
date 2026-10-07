@@ -3,6 +3,7 @@ import "../styles/board.css";
 import { renderNav } from "../lib/nav";
 import { BOARD_REGISTRY, getBoardEntry } from "../data/boards/registry";
 import {
+  DEFAULT_CONSTRAINTS,
   randomSeed,
   type ShuffleConstraints,
 } from "../lib/shuffle";
@@ -10,6 +11,8 @@ import type { CatanBoard, Hex } from "../data/boards/types";
 import { renderHexBoard } from "../lib/hexBoard";
 import { renderFacedownStack } from "../lib/facedownStack";
 import { decodeShareHash, encodeShareHash } from "../lib/shareLink";
+import { newGame } from "../lib/gameState";
+import { loadGame, saveGame } from "../lib/gameCodec";
 
 renderNav("map-generator");
 
@@ -73,6 +76,8 @@ let activeGenerationId = 0;
 const form = document.getElementById("map-controls") as HTMLFormElement;
 const root = document.getElementById("map-generator-root") as HTMLElement;
 const shuffleButton = form.querySelector("button[type=submit]") as HTMLButtonElement;
+const startGameButton = byId<HTMLButtonElement>("start-game");
+let shownBoard: { boardId: string; hexes: Hex[] } | undefined;
 
 // 26 boards is too many for a flat list, so group them the way the boxes are sold
 const groups = new Map<string, HTMLOptGroupElement>();
@@ -116,6 +121,7 @@ function renderGeneratedBoard(
   renderHexBoard(boardHost, board, hexes);
   if (board.facedownStack) root.appendChild(renderFacedownStack(board.facedownStack));
   history.replaceState(null, "", encodeShareHash({ boardId, seed, constraints }));
+  shownBoard = { boardId, hexes };
 }
 
 generatorWorker.addEventListener("message", (event: MessageEvent<MapGenerationMessage>) => {
@@ -123,6 +129,7 @@ generatorWorker.addEventListener("message", (event: MessageEvent<MapGenerationMe
   if (message.generationId !== activeGenerationId) return;
 
   setControlsDisabled(false);
+  root.classList.remove("map-generating");
 
   if (!message.ok) {
     root.innerHTML = `<p class="card">${message.error}</p>`;
@@ -135,6 +142,7 @@ generatorWorker.addEventListener("message", (event: MessageEvent<MapGenerationMe
 generatorWorker.addEventListener("error", () => {
   if (activeGenerationId === 0) return;
   setControlsDisabled(false);
+  root.classList.remove("map-generating");
   root.innerHTML = `<p class="card">Map generation failed.</p>`;
 });
 
@@ -153,6 +161,7 @@ function requestGeneration(boardId: string, seed: number, constraints: ShuffleCo
 function setControlsDisabled(disabled: boolean): void {
   shuffleButton.disabled = disabled;
   shuffleButton.textContent = disabled ? "Generating…" : "Shuffle";
+  startGameButton.disabled = disabled;
   boardSelect.disabled = disabled;
   for (const input of CONSTRAINT_INPUTS) {
     // generateAndRender decides min-islands' own disabled state based on the board, so only
@@ -173,9 +182,17 @@ function nextPaint(): Promise<void> {
 // and given a paint first so the page stays responsive while the worker does the work.
 async function reshuffle(boardId: string, seed: number): Promise<void> {
   const constraints = readConstraints();
+  shownBoard = undefined;
   setControlsDisabled(true);
+  // The board on screen stays where it is, dimmed, until its replacement is ready. Clearing
+  // it would collapse the page for a moment and pull the footer up into view, which flashed
+  // on every shuffle. The very first board has nothing to stand in for it, so an empty frame
+  // of the same size holds its place.
+  root.classList.add("map-generating");
+  if (!root.querySelector(".hex-board-frame")) {
+    root.innerHTML = `<div class="hex-board-frame"><p class="card">Generating board…</p></div>`;
+  }
   await nextPaint();
-  root.innerHTML = `<p class="card">Generating board…</p>`;
   requestGeneration(boardId, seed, constraints);
 }
 
@@ -184,6 +201,20 @@ boardSelect.addEventListener("change", () => void reshuffle(boardSelect.value, r
 form.addEventListener("submit", (event) => {
   event.preventDefault();
   void reshuffle(boardSelect.value, randomSeed());
+});
+
+startGameButton.addEventListener("click", () => {
+  if (!shownBoard) return;
+  const inProgress = loadGame();
+  if (
+    inProgress &&
+    inProgress.players.length > 0 &&
+    !confirm("This replaces the game in progress. Start a new one on this board?")
+  ) {
+    return;
+  }
+  saveGame(newGame(shownBoard.boardId, shownBoard.hexes));
+  window.location.href = "./play.html";
 });
 
 // a constraint change re-runs the same seed, so you can see what that setting did rather
@@ -195,9 +226,13 @@ for (const input of CONSTRAINT_INPUTS) {
   });
 }
 
+// a shared link carries its own settings, off ones included, so the defaults only apply
+// when the page is opened fresh
 const shared = decodeShareHash(window.location.hash);
 if (shared && getBoardEntry(shared.boardId)) {
   boardSelect.value = shared.boardId;
   writeConstraints(shared.constraints);
+} else {
+  writeConstraints(DEFAULT_CONSTRAINTS);
 }
 void reshuffle(boardSelect.value || BOARD_REGISTRY[0].id, shared?.seed ?? randomSeed());

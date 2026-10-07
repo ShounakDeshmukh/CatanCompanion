@@ -1,9 +1,10 @@
-type NavPage = "home" | "rules" | "map-generator" | "cost-cards";
+type NavPage = "home" | "rules" | "map-generator" | "play" | "cost-cards";
 
 const LINKS: { page: NavPage; href: string; label: string }[] = [
   { page: "home", href: "./index.html", label: "Home" },
   { page: "rules", href: "./rules.html", label: "Rules" },
   { page: "map-generator", href: "./map-generator.html", label: "Map Generator" },
+  { page: "play", href: "./play.html", label: "Play" },
   { page: "cost-cards", href: "./cost-cards.html", label: "Cost Cards" },
 ];
 

@@ -6,7 +6,12 @@ import { MANUAL_COUNTS, NOT_YET_TRANSCRIBED } from "./manualCounts";
 import { RESOURCE_BY_HEX } from "./types";
 import type { Hex } from "./types";
 import { buildBoard } from "../../lib/boardFactory";
-import { generateBoard, UnsatisfiableConstraintsError, UNCONSTRAINED } from "../../lib/shuffle";
+import {
+  DEFAULT_CONSTRAINTS,
+  generateBoard,
+  UnsatisfiableConstraintsError,
+  UNCONSTRAINED,
+} from "../../lib/shuffle";
 
 const NO_CONSTRAINTS = UNCONSTRAINED;
 
@@ -551,6 +556,27 @@ test("an impossible combination gives up promptly", () => {
     UnsatisfiableConstraintsError
   );
   assert.ok(Date.now() - started < 4000, "took too long to give up");
+});
+
+test("the generator's default settings produce a board on every map", () => {
+  for (const { id, template } of BOARD_REGISTRY) {
+    const board = buildBoard(template);
+    for (let seed = 1; seed <= 5; seed++) {
+      const started = Date.now();
+      assert.doesNotThrow(() => generateBoard(board, DEFAULT_CONSTRAINTS, seed), `${id} seed ${seed}`);
+      assert.ok(Date.now() - started < 500, `${id} seed ${seed} was slow`);
+    }
+  }
+});
+
+test("every board's player range matches the count its name gives", () => {
+  for (const { label, group, players } of BOARD_REGISTRY) {
+    const [min, max] = players;
+    const named = /\((\d)p\)/.exec(label);
+    if (named) assert.deepEqual(players, [Number(named[1]), Number(named[1])], label);
+    else assert.deepEqual(players, /5-6/.test(label + group) ? [5, 6] : [3, 4], label);
+    assert.ok(min <= max);
+  }
 });
 
 test("every registry id is unique", () => {
