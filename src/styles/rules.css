@@ -57,3 +57,71 @@
   font-size: 1.1rem;
   line-height: 1.6;
 }
+
+.rules-search {
+  width: 100%;
+  max-width: 34rem;
+  margin-top: 0.4rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 1.05rem;
+}
+
+/* a row of jumps to the sections of the open rule set */
+.rules-contents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.5rem;
+}
+
+.rules-contents a {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.rules-contents a:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+/* keeps a section's heading clear of the top of the screen when it is jumped to */
+.rule-section {
+  scroll-margin-top: 1rem;
+}
+
+.rule-section__from {
+  margin: 0 0 0.3rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.rule-section__link {
+  margin-left: 0.3rem;
+  font-size: 0.8em;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  opacity: 0;
+}
+
+.rule-section h2:hover .rule-section__link,
+.rule-section__link:focus {
+  opacity: 1;
+}
+
+.rule-section mark {
+  background: var(--color-gold);
+  color: #2b1c10;
+  border-radius: 3px;
+  padding: 0 0.1em;
+}
