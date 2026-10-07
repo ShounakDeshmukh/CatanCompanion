@@ -60,6 +60,7 @@ import {
 } from "./expansionTracking";
 import { parseGame } from "./gameCodec";
 import { summarize } from "./gameHistory";
+import { sampleGame } from "./sampleGame";
 import { hexPips } from "./shuffle";
 import { boardGeometry } from "./vertices";
 
@@ -688,4 +689,19 @@ test("board statistics total the pips and rank the best corners", () => {
   for (const corner of stats.corners) {
     assert.equal(corner.pips, corner.hexes.reduce((sum, i) => sum + hexPips(hexes[i]), 0));
   }
+});
+
+test("the sample game is a real game, ready for its next roll", () => {
+  const sample = sampleGame(1_000_000_000);
+  assert.deepEqual(sample, sampleGame(1_000_000_000));
+  assert.equal(setupTurn(sample), null);
+  assert.equal(hasRolled(sample), false);
+  assert.equal(sample.rolls.length, sample.turn);
+  assert.ok(sample.rolls.length >= 6);
+
+  // everyone has their two opening buildings at least, and the dice have paid somebody
+  assert.ok(playerPoints(sample).every((points) => points >= 2));
+  assert.ok(productionTotals(sample).received.reduce((sum, cards) => sum + cards, 0) > 5);
+  assert.ok(buildSpending(sample).some((spent) => spent > 0));
+  assert.ok(parseGame(JSON.parse(JSON.stringify(sample))));
 });

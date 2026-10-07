@@ -612,6 +612,11 @@
   padding: 0.6rem 0;
 }
 
+.play-empty .play-chips {
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
 .play-record summary {
   cursor: pointer;
   font-weight: 600;

@@ -198,6 +198,25 @@ try {
   await sleep(700);
   check("ending a game records it under Past games", await js(`document.querySelectorAll(".play-record").length === 1 && localStorage.getItem("catan-comp-game") === null`));
 
+  // the sample game, from a page with nothing saved
+  await js(`localStorage.clear()`);
+  await open("play.html");
+  await tap("#play-sample");
+  await sleep(900);
+  check("the sample game opens mid-game, ready to roll", await js(`!!document.querySelector(".play-pad") && ${game}.turn > 5 && document.querySelectorAll(".vertex--settlement, .vertex--city").length === 6`));
+  await tap('[data-action=roll][data-value="8"]');
+  await js(`window.confirm = () => true`);
+  await tap("[data-action=end]");
+  await sleep(700);
+  const picture = await js(`new Promise((resolve) => {
+    const toBlob = HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob = function (callback) { resolve([this.width, this.height]); toBlob.call(this, () => {}); };
+    document.querySelector("[data-share-record]").click();
+    setTimeout(() => resolve([0, 0]), 4000);
+  })`);
+  check("a finished game can be drawn as a result picture", picture[0] === 1080 && picture[1] === 1080);
+  check("the footer links to the issue tracker", await js(`document.querySelector(".site-footer a").href.endsWith("/issues/new")`));
+
   await startGame("ck-3-4", true);
   check("Cities & Knights shows improvements and no knight card", await js(`!document.querySelector("#play-city").hidden && !document.querySelector("[data-action=knight]")`));
   await js(`for (let level = 0; level < 4; level++) document.querySelector('[data-action=improve][data-value="0:trade:1"]').click()`);

@@ -1,3 +1,5 @@
+import { REPO_URL } from "./site";
+
 type NavPage = "home" | "rules" | "map-generator" | "play" | "cost-cards";
 
 const LINKS: { page: NavPage; href: string; label: string }[] = [
@@ -81,6 +83,10 @@ function renderFooter(): void {
         endorsed by, or sponsored by CATAN GmbH or CATAN Studio. CATAN is a trademark of
         CATAN GmbH. Board layouts and component counts are taken from the published rule
         books.
+      </p>
+      <p>
+        Found a mistake, or something that would make it more useful at your table?
+        <a href="${REPO_URL}/issues/new" target="_blank" rel="noopener">Tell us about it</a>.
       </p>
     </div>
   `;
