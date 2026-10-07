@@ -1,6 +1,6 @@
 import type { Ruleset } from "./types";
 
-// Summarized from Rules/Catan Base 3_4.pdf and Catan Base 5_6.pdf (2025, 6th edition).
+// Summarized from the Catan rule book and the Catan 5-6 extension rule book (2025, 6th edition).
 // Written as a plain-language walkthrough for someone who has never played before.
 export const baseRules: Ruleset = {
   id: "base",

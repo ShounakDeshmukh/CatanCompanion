@@ -1,6 +1,6 @@
 import type { Ruleset } from "./types";
 
-// Summarized from Rules/Catan Seafarers 3_4.pdf and Catan Seafarers 5_6.pdf (2025, 6th edition).
+// Summarized from the Seafarers rule book and the Seafarers 5-6 extension rule book (2025, 6th edition).
 // Written as a plain-language walkthrough for players who already know base Catan.
 export const seafarersRules: Ruleset = {
   id: "seafarers",

@@ -6,7 +6,7 @@ import type { CatanBoardTemplate } from "./types";
  * catan-randomizer has no 5-6 Seafarers boards, so these layouts were read out of the
  * rendered board at https://www.seafarers-generator.com and converted to this grid (its grid
  * is this one transposed, which is why every board here is `horizontal`). Each one is checked
- * against the component table printed in Rules/Catan Seafarers 5_6.pdf - terrain, number
+ * against the component table printed in the Seafarers 5-6 extension rule book - terrain, number
  * discs and harbor counts all match - by src/data/boards/boards.test.ts.
  *
  * Harbors carry the edge they face, derived from where the harbour marker sits relative to

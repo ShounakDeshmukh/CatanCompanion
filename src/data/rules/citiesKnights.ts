@@ -1,6 +1,6 @@
 import type { Ruleset } from "./types";
 
-// Summarized from Rules/Catan Cities and Knights 3_4.pdf and Catan Cities and Knights 5_6.pdf
+// Summarized from the Cities & Knights rule book and the Cities & Knights 5-6 extension rule book
 // (2025, 6th edition).
 // Written as a plain-language walkthrough for players who already know base Catan. The
 // commodities/city-improvements section is deliberately the most detailed one here - it's

@@ -233,7 +233,7 @@ test("moveable ports end up somewhere they can actually trade", () => {
   }
 });
 
-// Rules/Catan Seafarers 3_4.pdf p.12 and 5_6.pdf p.8: victory point tokens and face-down
+// The Seafarers rule book p.12 and its 5-6 extension p.8: victory point tokens and face-down
 // development cards on the indicated edges
 for (const [id, vp, cards] of [
   ["sf-forgotten-tribe", 8, 4],

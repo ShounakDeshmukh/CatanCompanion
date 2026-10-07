@@ -16,8 +16,8 @@ export interface BuildingCost {
   note?: string;
 }
 
-// Verified against Rules/Catan Base 3_4.pdf, Catan Seafarers 3_4.pdf, and
-// Catan Cities and Knights 3_4.pdf.
+// Verified against the Catan rule book, the Seafarers rule book, and
+// the Cities & Knights rule book.
 export const BUILDING_COSTS: BuildingCost[] = [
   { id: "road", label: "Road", expansion: "base", cost: { brick: 1, wood: 1 } },
   {
@@ -70,7 +70,7 @@ export interface ImprovementTrack {
 
 // Each level N costs N commodities of the track's type. Reaching level 4 grants temporary
 // metropolis control (first player only); level 5 grants it permanently. Verified against
-// Rules/Catan Cities and Knights 3_4.pdf.
+// the Cities & Knights rule book.
 export const IMPROVEMENT_TRACKS: ImprovementTrack[] = [
   {
     id: "science",

@@ -1,7 +1,7 @@
 import type { RuleSection } from "./types";
 
 // Summarized from the "Combining with Catan - Seafarers Expansion" section of
-// Rules/Catan Cities and Knights 3_4.pdf.
+// the Cities & Knights rule book.
 export const combinedNotes: RuleSection[] = [
   {
     id: "seafarers-ck",
