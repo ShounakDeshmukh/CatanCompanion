@@ -65,8 +65,8 @@
  * either site theme rather than following the page palette (see .cost-card precedent).
  */
 .reference-card {
-  --rc-parchment: #ecdfc0;
-  --rc-parchment-dark: #ddc99a;
+  --rc-parchment: var(--parchment-light);
+  --rc-parchment-dark: var(--parchment-mid);
   --rc-wood-dark: #3c2416;
   --rc-wood-mid: #5a3823;
   --rc-gold: #b8863f;
@@ -76,7 +76,9 @@
   flex-direction: column;
   border-radius: 16px;
   padding: 9px;
-  background: linear-gradient(155deg, var(--rc-wood-mid), var(--rc-wood-dark) 60%);
+  background:
+    var(--parchment-grain),
+    linear-gradient(155deg, var(--rc-wood-mid), var(--rc-wood-dark) 60%);
   box-shadow:
     0 20px 34px -10px rgb(0 0 0 / 0.5),
     0 2px 0 rgb(255 255 255 / 0.06) inset;
@@ -96,8 +98,11 @@
   border-radius: 10px;
   border: 1px solid rgb(184 134 63 / 0.7);
   background:
-    radial-gradient(circle at 30% 10%, rgb(255 255 255 / 0.1), transparent 55%),
-    linear-gradient(160deg, var(--rc-parchment), var(--rc-parchment-dark));
+    var(--parchment-grain),
+    radial-gradient(circle at 30% 10%, rgb(255 255 255 / 0.18), transparent 55%),
+    linear-gradient(160deg, var(--rc-parchment), var(--rc-parchment-dark) 70%, var(--parchment-dark));
+  /* the page darkens toward its edges, like the vignette on the hex art */
+  box-shadow: inset 0 0 26px rgb(94 67 34 / 0.28);
   padding: 16px 20px 12px;
 }
 
@@ -214,8 +219,8 @@
 }
 
 .resource-popover__inner {
-  --rc-parchment: #ecdfc0;
-  --rc-parchment-dark: #ddc99a;
+  --rc-parchment: var(--parchment-light);
+  --rc-parchment-dark: var(--parchment-mid);
   --rc-wood-dark: #3c2416;
   --rc-wood-mid: #5a3823;
   --rc-gold: #b8863f;
@@ -251,6 +256,7 @@
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
   background:
+    var(--parchment-grain),
     radial-gradient(circle at 30% 10%, rgb(255 255 255 / 0.08), transparent 55%),
     linear-gradient(160deg, var(--rc-parchment), var(--rc-parchment-dark));
   border: 1px solid rgb(184 134 63 / 0.22);

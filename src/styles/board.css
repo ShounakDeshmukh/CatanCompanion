@@ -73,26 +73,57 @@
   /* the flat colour shows through if the artwork ever fails to load */
   background-color: var(--hex-color);
   background-image: var(--hex-art);
-  background-size: 100% 100%;
+  /*
+   * Each tile carries its own parchment frame, drawn a little inside its picture. Enlarging
+   * the picture brings the frame out to the edge of the cell, so neighbouring frames meet
+   * and form the lattice between the hexes.
+   */
+  background-size: 103.2% 103.2%;
+  background-position: center;
   background-repeat: no-repeat;
-  transform: rotate(var(--hex-spin, 0deg)) scale(0.965);
+  transform: rotate(var(--hex-spin, 0deg));
 }
 
-.hex--has-port {
-  /* the harbor label overhangs the hex; without this the next sibling paints over it */
+/*
+ * The layer of pieces on a hex. It shares the tile's grid area, and is laid out the same way
+ * so a disc or the robber lands in the middle. Taps fall through it to the tile, except on
+ * the pieces themselves, which keep their tooltips.
+ */
+.hex-top {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.hex-top > :is(.hex-chit, .hex-robber, .hex-unknown),
+.hex-edge-item__badge {
+  pointer-events: auto;
+}
+
+.hex-top--reaching {
+  /* a harbor plaque or edge token overhangs onto the next hex, and must clear its disc */
   z-index: 1;
 }
 
 /*
- * Number chits are physical tokens, so they keep the same cream-and-ink look in either
- * theme rather than following the page palette.
+ * Number chits are physical tokens, so they keep the same parchment-and-ink look in either
+ * theme rather than following the page palette. They are lit from the upper left, as the
+ * hex frames are.
  */
 .hex-chit {
-  --chit-face: #f6ecd4;
-  --chit-ink: #2b2118;
+  --chit-ink: var(--parchment-ink);
   --hex-chit-size: calc(var(--hex-size) * 0.43);
-  background: radial-gradient(circle at 34% 28%, #fffaf0 0%, var(--chit-face) 62%, #e2d3b2 100%);
-  border: 1px solid #b9a480;
+  background:
+    var(--parchment-grain),
+    radial-gradient(
+      circle at 34% 28%,
+      #fffaf0 0%,
+      var(--parchment-light) 45%,
+      var(--parchment-mid) 100%
+    );
+  border: 1px solid var(--parchment-edge);
   border-radius: 999px;
   width: var(--hex-chit-size);
   height: var(--hex-chit-size);
@@ -100,7 +131,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.45);
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 0.5),
+    inset 0 0 0 1px rgb(255 251 233 / 0.65);
   font-family: var(--font-heading);
 }
 
@@ -137,61 +170,48 @@
   text-shadow: 0 1px 3px rgb(0 0 0 / 0.55);
 }
 
+/*
+ * The robber figure. It is a single small piece, so unlike the terrain it is drawn straight
+ * from its SVG. Centred on its hex and kept upright by the transform set in hexBoard.ts.
+ */
 .hex-robber {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: calc(var(--hex-size) * 0.16);
-  height: calc(var(--hex-size) * 0.26);
-  background: #2a2a2a;
-  border-radius: 40% 40% 50% 50%;
-  opacity: 0.85;
+  width: calc(var(--hex-size) * 0.38);
+  aspect-ratio: 100 / 120;
+  background: url("../assets/robber.svg") center / contain no-repeat;
 }
 
-/*
- * A harbor overlay covers the whole hex and is rotated so its dock lands on one edge. The
- * dock is drawn against the west edge, which is where orientation 0 points.
- */
+/* Holds the harbor's plaque over its hex, turned to face the served edge (see buildPort). */
 .hex-port {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
 
-.hex-port__docks {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.hex-port__docks path {
-  stroke: #7a5a34;
-  stroke-width: calc(var(--hex-size) * 0.055);
-  stroke-linecap: round;
-  fill: none;
-}
-
-.hex-port__docks circle {
-  fill: #8c6a3f;
-  stroke: #5c4225;
-  stroke-width: calc(var(--hex-size) * 0.025);
-}
-
 .hex-port__label {
   position: absolute;
-  left: 12%;
+  /*
+   * Out on the water, a little past the middle of the hex from the edge the harbor serves:
+   * clear of the village on the coast, and well clear of the land hex beyond, where it used
+   * to cover a number disc or a token waiting on the same edge.
+   */
+  left: 60%;
   top: 50%;
   transform-origin: center;
-  background: var(--color-bg-raised);
-  border: 1px solid var(--color-border);
+  /* a painted plaque, in the same parchment as the frames and discs */
+  background: var(--parchment-grain), var(--parchment-sheet);
+  border: 1px solid var(--parchment-edge);
   border-radius: 999px;
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 0.5),
+    inset 0 0 0 1px rgb(255 251 233 / 0.6);
   padding: calc(var(--hex-size) * 0.02) calc(var(--hex-size) * 0.08);
-  font-size: calc(var(--hex-size) * 0.2);
-  font-weight: 600;
+  font-size: calc(var(--hex-size) * 0.165);
+  font-weight: 700;
   white-space: nowrap;
-  color: var(--color-text);
+  color: var(--parchment-ink);
 }
 
 .hex-edge-item {
@@ -202,12 +222,13 @@
 
 .hex-edge-item__badge {
   position: absolute;
-  left: 6%;
+  /* just inside its own hex, clear of both the disc in the middle and a harbor next door */
+  left: 15%;
   top: 50%;
   transform-origin: center;
   border-radius: 4px;
   padding: calc(var(--hex-size) * 0.02) calc(var(--hex-size) * 0.07);
-  font-size: calc(var(--hex-size) * 0.17);
+  font-size: calc(var(--hex-size) * 0.16);
   font-weight: 700;
   white-space: nowrap;
   border: 1px solid rgb(0 0 0 / 0.35);
@@ -215,12 +236,12 @@
 }
 
 .hex-edge-item__badge--victoryPoint {
-  background: #c9a227;
+  background: var(--parchment-grain), #c9a227;
   color: #2b2118;
 }
 
 .hex-edge-item__badge--developmentCard {
-  background: #b3311b;
+  background: var(--parchment-grain), #b3311b;
   color: #f6ecd4;
 }
 
@@ -228,6 +249,16 @@
   /* wider than the reading pages so the board has room */
   max-width: 1180px;
   padding-top: 1rem;
+}
+
+/*
+ * Most boards arrive within a frame or two, so the dimming waits a moment before it starts;
+ * otherwise every shuffle would flicker. It only shows when a tight set of rules makes the
+ * generator think.
+ */
+.map-generating .hex-board {
+  opacity: 0.55;
+  transition: opacity 200ms ease 150ms;
 }
 
 .map-controls {

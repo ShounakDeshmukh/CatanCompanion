@@ -25,7 +25,7 @@
 
 @font-face {
   font-family: "Cinzel";
-  src: url("/Cinzel-VariableFont_wght.ttf") format("truetype");
+  src: url("/Cinzel-VariableFont_wght.woff2") format("woff2");
   font-style: normal;
   font-weight: 600 700;
   font-display: swap;
@@ -33,7 +33,7 @@
 
 @font-face {
   font-family: "Crimson Pro";
-  src: url("/CrimsonPro-Regular.ttf") format("truetype");
+  src: url("/CrimsonPro-Regular.woff2") format("woff2");
   font-style: normal;
   font-weight: 400 700;
   font-display: swap;
@@ -41,7 +41,7 @@
 
 @font-face {
   font-family: "Crimson Pro";
-  src: url("/CrimsonPro-Italic.ttf") format("truetype");
+  src: url("/CrimsonPro-Italic.woff2") format("woff2");
   font-style: italic;
   font-weight: 500;
   font-display: swap;
@@ -68,6 +68,24 @@
   --color-paper: #4f9153;
   --color-cloth: #d9ab2e;
   --color-coin: #2f97a8;
+
+  /*
+   * The parchment of the hex frames, for anything meant to look like a printed game piece:
+   * number discs, harbour plaques, reference cards. It is the same in both themes, as the
+   * pieces are. The grain is a seamless tile laid over whichever gradient suits the shape.
+   */
+  --parchment-light: #f6ecce;
+  --parchment-mid: #e2cc98;
+  --parchment-dark: #c9ab70;
+  --parchment-edge: #5e4322;
+  --parchment-ink: #2b1c10;
+  --parchment-grain: url("../assets/parchment.webp") 0 0 / 144px 144px;
+  --parchment-sheet: linear-gradient(
+    135deg,
+    var(--parchment-light),
+    var(--parchment-mid) 55%,
+    var(--parchment-dark)
+  );
 
   --font-heading: "Cinzel", "Cinzel Fallback", Georgia, "Times New Roman", serif;
   --font-body: "Crimson Pro", "Crimson Pro Fallback", Georgia, "Times New Roman", serif;

@@ -1,6 +1,11 @@
 import type { CatanBoard, Hex, HexType, Orientation, PortType } from "../data/boards/types";
 import { pipsForNumber } from "../data/boards/types";
-import { HEX_ART } from "../assets/hexes/index";
+import {
+  HARBOR_ART,
+  HARBOR_ART_SIDEWAYS,
+  HEX_ART,
+  HEX_ART_SIDEWAYS,
+} from "../assets/hexes/index";
 
 type HexBoardContainer = HTMLElement & {
   __hexBoardResizeObserver?: ResizeObserver;
@@ -19,7 +24,7 @@ const HEX_COLOR_VAR: Record<HexType, string> = {
   village: "--color-cloth",
 };
 
-const HEX_LABEL: Record<HexType, string> = {
+export const HEX_LABEL: Record<HexType, string> = {
   hills: "Hills",
   forest: "Forest",
   pasture: "Pasture",
@@ -64,25 +69,16 @@ function buildNumberChit(hex: Hex, uprightBy: number): HTMLElement {
 }
 
 /**
- * A harbor is drawn as a full-hex overlay rotated so its dock sits on one specific edge.
- * `orientation` is degrees clockwise from west-facing, so the dock is laid out against the
- * west edge and the whole overlay is then turned. The label is turned back the other way,
- * plus the board's own rotation, so it stays upright however the hex is oriented.
+ * The plaque naming a harbor's trade. Which edge the harbor serves is shown by its tile. The
+ * plaque is laid out as if that edge were the western one and the whole overlay then turned
+ * onto the real edge, which is what lets it sit out on the water, clear of the village drawn
+ * along the coast. `orientation` is degrees clockwise from west-facing. The label is turned
+ * back the other way, plus the board's own rotation, so it stays upright.
  */
 function buildPort(type: PortType, orientation: Orientation, uprightBy: number): HTMLElement {
   const port = document.createElement("div");
   port.className = "hex-port";
   port.style.transform = `rotate(${orientation}deg)`;
-
-  // two piers running from the harbour out to the ends of the western edge, which is the
-  // edge orientation 0 points at; the whole overlay is then rotated onto the real edge
-  port.insertAdjacentHTML(
-    "beforeend",
-    `<svg class="hex-port__docks" viewBox="0 0 200 231" aria-hidden="true">
-       <path d="M58 92 L14 70 M58 139 L14 161" />
-       <circle cx="66" cy="115.5" r="13" />
-     </svg>`
-  );
 
   const label = document.createElement("span");
   label.className = "hex-port__label";
@@ -111,19 +107,44 @@ function buildEdgeItem(item: NonNullable<Hex["edgeItems"]>[number], uprightBy: n
   return wrapper;
 }
 
-function buildHex(hex: Hex, index: number, showRobber: boolean, uprightBy: number): HTMLElement {
+/** The terrain tile itself. Everything that sits on it is built by {@link buildHexTop}. */
+function buildHex(hex: Hex, index: number, uprightBy: number): HTMLElement {
+  const upright = uprightBy === 0;
+  // a harbor has its own tile, drawn with the coast along the edge it serves
+  const art = hex.port
+    ? (upright ? HARBOR_ART : HARBOR_ART_SIDEWAYS)[hex.port.orientation]
+    : (upright ? HEX_ART : HEX_ART_SIDEWAYS)[hex.type];
   const element = document.createElement("div");
   element.className = "hex";
   element.dataset.hexIndex = String(index);
   element.style.setProperty("--hex-color", `var(${HEX_COLOR_VAR[hex.type]})`);
-  element.style.setProperty("--hex-art", `url("${HEX_ART[hex.type]}")`);
+  element.style.setProperty("--hex-art", `url("${art}")`);
   if (hex.orientation) element.style.setProperty("--hex-spin", `${hex.orientation}deg`);
   element.title = HEX_LABEL[hex.type];
+  return element;
+}
+
+/**
+ * What stands on a hex: the robber, its number disc, a harbor, edge tokens. These are kept
+ * apart from the tile so that they can all be drawn after every tile on the board. Harbor
+ * plaques and edge tokens overhang their own hex, and as children of the tile they were
+ * painted over by whichever neighbouring tile came later. Returns nothing for a bare hex.
+ */
+function buildHexTop(
+  hex: Hex,
+  index: number,
+  showRobber: boolean,
+  uprightBy: number
+): HTMLElement | undefined {
+  const element = document.createElement("div");
+  element.className = "hex-top";
+  element.dataset.hexIndex = String(index);
 
   if (showRobber) {
     const robber = document.createElement("div");
     robber.className = "hex-robber";
     robber.title = "Robber";
+    robber.style.transform = `translate(-50%, -50%) rotate(${uprightBy}deg)`;
     element.appendChild(robber);
   }
 
@@ -139,19 +160,25 @@ function buildHex(hex: Hex, index: number, showRobber: boolean, uprightBy: numbe
 
   if (hex.number !== undefined) element.appendChild(buildNumberChit(hex, uprightBy));
   for (const item of hex.edgeItems ?? []) {
-    element.classList.add("hex--has-port");
+    element.classList.add("hex-top--reaching");
     element.appendChild(buildEdgeItem(item, uprightBy));
   }
 
   if (hex.port) {
-    element.classList.add("hex--has-port");
+    element.classList.add("hex-top--reaching");
     element.appendChild(buildPort(hex.port.type, hex.port.orientation, uprightBy));
   }
 
-  return element;
+  return element.childElementCount > 0 ? element : undefined;
 }
 
-export function renderHexBoard(container: HTMLElement, board: CatanBoard, hexes: Hex[]): void {
+export function renderHexBoard(
+  container: HTMLElement,
+  board: CatanBoard,
+  hexes: Hex[],
+  // scenarios can have several deserts but there is only ever one robber
+  robberIndex: number = hexes.findIndex((hex) => hex.type === "desert")
+): void {
   const observedContainer = container as HexBoardContainer;
   observedContainer.__hexBoardResizeObserver?.disconnect();
 
@@ -168,14 +195,19 @@ export function renderHexBoard(container: HTMLElement, board: CatanBoard, hexes:
   const boardRotation = board.horizontal ? 90 : 0;
   if (boardRotation) grid.style.transform = `rotate(${boardRotation}deg)`;
 
-  // scenarios can have several deserts but there is only ever one robber
-  const robberIndex = hexes.findIndex((hex) => hex.type === "desert");
-
+  // every tile first, then everything that stands on them, so nothing ends up under a tile
+  const tops: HTMLElement[] = [];
   hexes.forEach((hex, index) => {
-    const element = buildHex(hex, index, index === robberIndex, -boardRotation);
-    element.style.gridArea = board.cssGridAreas[index];
-    grid.appendChild(element);
+    const tile = buildHex(hex, index, -boardRotation);
+    tile.style.gridArea = board.cssGridAreas[index];
+    grid.appendChild(tile);
+
+    const top = buildHexTop(hex, index, index === robberIndex, -boardRotation);
+    if (!top) return;
+    top.style.gridArea = board.cssGridAreas[index];
+    tops.push(top);
   });
+  grid.append(...tops);
 
   container.appendChild(grid);
 
