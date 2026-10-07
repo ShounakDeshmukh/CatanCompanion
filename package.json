@@ -9,13 +9,15 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "node scripts/run-tests.mjs",
-    "art": "node scripts/generate-hex-art.mjs"
+    "test": "bun test"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
     "typescript": "^5.7.3",
-    "vite": "^6.0.0",
-    "esbuild": "^0.25.12"
+    "vite": "^6.0.0"
+  },
+  "dependencies": {
+    "peerjs": "^1.5.5",
+    "qrcode-generator": "^2.0.4"
   }
 }
