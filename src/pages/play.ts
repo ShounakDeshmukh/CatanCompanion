@@ -2,25 +2,37 @@ import "../styles/theme.css";
 import "../styles/board.css";
 import "../styles/play.css";
 import { renderNav } from "../lib/nav";
-import { getBoardEntry, type BoardEntry } from "../data/boards/registry";
+import { getBoardEntry } from "../data/boards/registry";
 import type { CatanBoard, Hex, HexType, NumberChitValue } from "../data/boards/types";
 import { RESOURCE_BY_HEX } from "../data/boards/types";
 import { buildBoard } from "../lib/boardFactory";
 import { HEX_LABEL, renderHexBoard } from "../lib/hexBoard";
-import { shuffleInPlace } from "../lib/shuffle";
 import { boardGeometry, type Edge } from "../lib/vertices";
 import { clearGame, loadGame, loadUndo, saveGame, saveUndo } from "../lib/gameCodec";
 import {
-  MAX_IMPROVEMENT,
+  EVENT_LABEL,
+  KNIGHT_RANK,
+  TOTALS,
+  barbarianOutcome,
+  elapsed,
+  escapeHtml,
+  nameList,
+  payoutText,
+  playerTag,
+  setHtml,
+  takings,
+} from "./play/format";
+import { cityHtml, historyHtml, scoresHtml, statsHtml } from "./play/panels";
+import { renderEmpty } from "./play/records";
+import { renderSetup } from "./play/setup";
+import {
   buyDevelopmentCard,
   changeWalls,
-  improvementLevel,
   lowerImprovement,
   movePirate,
   raiseImprovement,
-  wallCount,
 } from "../lib/expansionTracking";
-import { clearRecords, loadRecords, saveRecord, summarize, type GameRecord } from "../lib/gameHistory";
+import { saveRecord, summarize } from "../lib/gameHistory";
 import {
   hostRoom,
   newRoomId,
@@ -32,58 +44,47 @@ import {
   type Snapshot,
 } from "../lib/share";
 import {
-  BARBARIAN_TRACK_LENGTH,
-  PLAYER_COLORS,
   activateKnight,
   barbarianOutlook,
-  barbarianPosition,
-  barbariansAttacked,
   barbariansResolved,
-  buildSpending,
-  clothCollected,
-  entryCost,
-  TRACKS,
-  cardPlayedThisTurn,
-  currentPlayer,
-  cycleBuilding,
-  endTurn,
-  facedownRemaining,
-  hasRolled,
-  knightCost,
-  knightStrength,
-  knightsPlayed,
   moveKnight,
-  moveRobber,
-  networkCorners,
-  pairedPlayer,
   pendingPillage,
   pillageCity,
-  placeSetupPiece,
-  playKnight,
-  playRoadBuilding,
   promoteKnight,
   recruitKnight,
   removeKnight,
   resolveBarbarians,
-  playerPoints,
-  productionTotals,
-  recordRoll,
+  standDownKnight,
+} from "../lib/cityKnights";
+import {
+  facedownRemaining,
+  placeSetupPiece,
   revealHex,
-  roadLengths,
+  startingCards,
+} from "../lib/gameSetup";
+import {
+  BARBARIAN_TRACK_LENGTH,
+  barbarianPosition,
+  barbariansAttacked,
+  cardPlayedThisTurn,
+  currentPlayer,
+  cycleBuilding,
+  endTurn,
+  hasRolled,
+  knightCost,
+  moveRobber,
+  networkCorners,
+  pairedPlayer,
+  playKnight,
+  playRoadBuilding,
+  recordRoll,
   setLastEvent,
   setupTurn,
-  standDownKnight,
-  startingCards,
   toggleRoad,
   tooCloseToBuild,
-  type Card,
   type EventDie,
   type GameState,
   type KnightAction,
-  type LedgerEntry,
-  type Payout,
-  type Player,
-  type PlayerColor,
   type Track,
 } from "../lib/gameState";
 
@@ -91,29 +92,9 @@ renderNav("play");
 
 const root = document.getElementById("play-root") as HTMLElement;
 
-const CARD_LABEL: Record<Card, string> = {
-  brick: "Brick",
-  wood: "Wood",
-  wool: "Sheep",
-  wheat: "Wheat",
-  ore: "Ore",
-  choice: "of their choice",
-  paper: "Paper",
-  cloth: "Cloth",
-  coin: "Coin",
-};
-
-const EVENT_LABEL: Record<EventDie, string> = {
-  ship: "Ship",
-  yellow: "Yellow gate",
-  blue: "Blue gate",
-  green: "Green gate",
-};
-
 type Mode = "build" | "road" | "ship" | "knight" | "robber" | "pirate";
 
 const ZOOM_STEPS = [1, 1.6, 2.4];
-const TRACK_LABEL: Record<Track, string> = { science: "Science", trade: "Trade", politics: "Politics" };
 
 const MODE_LABEL: Record<Mode, string> = {
   build: "Settlements",
@@ -123,18 +104,6 @@ const MODE_LABEL: Record<Mode, string> = {
   robber: "Robber",
   pirate: "Pirate",
 };
-
-const KNIGHT_RANK = ["Basic", "Strong", "Mighty"] as const;
-
-const KNIGHT_ACTION_TEXT: Record<KnightAction, string> = {
-  recruit: "recruits a knight",
-  promote: "promotes a knight",
-  activate: "activates a knight",
-  move: "moves a knight",
-  chase: "chases the robber off with a knight",
-};
-
-const AWARD_LABEL = { longestRoad: "Longest Road", largestArmy: "Largest Army" } as const;
 
 const SETUP_HINT = {
   settlement: "Tap a corner on the board. Placing runs round the table, then back again.",
@@ -154,44 +123,7 @@ const MODE_HINT: Record<Mode, string> = {
 };
 
 const EVENT_FACES: EventDie[] = ["ship", "ship", "ship", "yellow", "blue", "green"];
-const TOTALS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-
-const waysToRoll = (total: number) => 6 - Math.abs(7 - total);
 const rollDie = () => 1 + Math.floor(Math.random() * 6);
-
-function escapeHtml(text: string): string {
-  return text.replace(
-    /[&<>"']/g,
-    (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] as string
-  );
-}
-
-const drawnHtml = new WeakMap<HTMLElement, string>();
-
-/**
- * Replaces an element's markup only when it has actually changed. Most taps alter one or two
- * panels, and leaving the rest alone also keeps the history list scrolled where it was.
- */
-function setHtml(element: HTMLElement, html: string): void {
-  if (drawnHtml.get(element) === html) return;
-  drawnHtml.set(element, html);
-  element.innerHTML = html;
-}
-
-function playerTag(player: Pick<Player, "name" | "color">): string {
-  return `<span class="player-dot" style="--player-color: var(--player-${player.color})"></span>${escapeHtml(player.name)}`;
-}
-
-function payoutText(payout: Payout): string {
-  return (Object.entries(payout) as [Card, number][])
-    .map(([card, count]) => `${count} ${CARD_LABEL[card]}`)
-    .join(", ");
-}
-
-function elapsed(since: number): string {
-  const seconds = Math.max(0, Math.floor((Date.now() - since) / 1000));
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-}
 
 /** Phones dim and lock between turns, which is the quickest way to stop anyone using this. */
 function keepScreenAwake(): void {
@@ -202,186 +134,6 @@ function keepScreenAwake(): void {
   request();
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") request();
-  });
-}
-
-function recordHtml(record: GameRecord, open: boolean): string {
-  const [winner] = record.players;
-  const minutes = Math.max(1, Math.round((record.endedAt - record.startedAt) / 60000));
-  const mostRolled = record.rolls.indexOf(Math.max(...record.rolls)) + 2;
-  return `
-    <details class="play-record" ${open ? "open" : ""}>
-      <summary>
-        ${playerTag(winner)} won with ${winner.points}
-        <span class="play-muted">${new Date(record.endedAt).toLocaleDateString()} · ${escapeHtml(record.board)}</span>
-      </summary>
-      <div class="play-table-wrap">
-        <table class="play-table">
-          <thead><tr><th>Player</th><th>Points</th><th>Cards</th><th>Luck</th></tr></thead>
-          <tbody>
-            ${record.players
-              .map(
-                (player) => `
-              <tr>
-                <th scope="row">${playerTag(player)}</th>
-                <td class="play-table__total">${player.points}</td>
-                <td>${player.cards}</td>
-                <td>${player.luck >= 0 ? "+" : ""}${player.luck.toFixed(1)}</td>
-              </tr>`
-              )
-              .join("")}
-          </tbody>
-        </table>
-      </div>
-      <p class="play-muted">${record.turns} turns in about ${minutes} min, first to ${record.target}.
-        ${record.turns > 0 ? `The dice favoured ${mostRolled}, rolled ${record.rolls[mostRolled - 2]} times.` : ""}</p>
-    </details>`;
-}
-
-function renderEmpty(): void {
-  const records = loadRecords();
-  root.innerHTML = `
-    <section class="card play-empty">
-      <h2>No game in progress</h2>
-      <p>Pick a board, lay it out on the table, then press <strong>Start game</strong>.</p>
-      <a class="btn" href="./map-generator.html">Choose a board</a>
-    </section>
-    ${
-      records.length === 0
-        ? ""
-        : `<section class="card play-empty">
-            <h2>Past games</h2>
-            ${records.map((record, index) => recordHtml(record, index === 0)).join("")}
-            <button class="play-link" id="play-clear-records">Clear past games</button>
-          </section>`
-    }`;
-  document.getElementById("play-clear-records")?.addEventListener("click", () => {
-    if (!confirm("Remove the record of every past game on this device?")) return;
-    clearRecords();
-    renderEmpty();
-  });
-}
-
-function renderSetup(game: GameState, entry: BoardEntry, board: CatanBoard): void {
-  const [minPlayers, maxPlayers] = entry.players;
-  const seats = minPlayers === maxPlayers ? `${minPlayers}` : `${minPlayers} to ${maxPlayers}`;
-  const defaultsToCitiesKnights = game.boardId.startsWith("ck");
-  root.innerHTML = `
-    <form class="card play-setup" id="play-setup">
-      <h2>Who is playing?</h2>
-      <p class="play-muted">${escapeHtml(entry.label)} is set up for ${seats} players.</p>
-      <div class="play-setup__players"></div>
-      <div class="play-chips" ${minPlayers === maxPlayers ? "hidden" : ""}>
-        <button class="play-chip" type="button" data-players="add">Add player</button>
-        <button class="play-chip" type="button" data-players="remove">Remove player</button>
-      </div>
-      <label class="play-setup__option">
-        <input type="checkbox" name="shuffle" checked /> Randomise turn order
-      </label>
-      <label class="play-setup__option">
-        <input type="checkbox" name="citiesKnights" ${defaultsToCitiesKnights ? "checked" : ""} />
-        Cities &amp; Knights (commodities and barbarians)
-      </label>
-      <label class="play-setup__option">
-        Points to win
-        <input type="number" name="target" min="3" max="30"
-          value="${defaultsToCitiesKnights ? 13 : 10}" />
-      </label>
-      <button class="btn" type="submit">Start</button>
-    </form>`;
-
-  const form = root.querySelector("form") as HTMLFormElement;
-  const target = form.elements.namedItem("target") as HTMLInputElement;
-  const citiesKnights = form.elements.namedItem("citiesKnights") as HTMLInputElement;
-  citiesKnights.addEventListener("change", () => {
-    target.value = citiesKnights.checked ? "13" : "10";
-  });
-
-  const rows = form.querySelector(".play-setup__players") as HTMLElement;
-  const addButton = form.querySelector("[data-players=add]") as HTMLButtonElement;
-  const removeButton = form.querySelector("[data-players=remove]") as HTMLButtonElement;
-  const nameInputs = () => [...rows.querySelectorAll<HTMLInputElement>("input")];
-
-  const colorSelects = () => [...rows.querySelectorAll<HTMLSelectElement>("select")];
-
-  function paintDot(select: HTMLSelectElement): void {
-    const dot = select.previousElementSibling as HTMLElement;
-    dot.style.setProperty("--player-color", `var(--player-${select.value})`);
-    select.dataset.shown = select.value;
-  }
-
-  function addPlayerRow(): void {
-    const seat = rows.childElementCount;
-    const taken = new Set(colorSelects().map((select) => select.value));
-    const free = PLAYER_COLORS.find((color) => !taken.has(color));
-    rows.insertAdjacentHTML(
-      "beforeend",
-      `<div class="play-setup__player">
-        <span class="player-dot"></span>
-        <select aria-label="Player ${seat + 1} colour">
-          ${PLAYER_COLORS.map(
-            (color) =>
-              `<option value="${color}"${color === free ? " selected" : ""}>${color[0].toUpperCase()}${color.slice(1)}</option>`
-          ).join("")}
-        </select>
-        <input type="text" maxlength="16" autocomplete="off" placeholder="Player ${seat + 1}"
-          aria-label="Player ${seat + 1} name" />
-      </div>`
-    );
-    paintDot(colorSelects()[seat]);
-  }
-
-  // two players cannot share a colour, so picking one that is taken swaps the two over
-  rows.addEventListener("change", (event) => {
-    const changed = event.target as HTMLSelectElement;
-    if (changed.tagName !== "SELECT") return;
-    const clash = colorSelects().find((other) => other !== changed && other.value === changed.value);
-    if (clash) {
-      clash.value = changed.dataset.shown as string;
-      paintDot(clash);
-    }
-    paintDot(changed);
-  });
-
-  function syncPlayerButtons(): void {
-    addButton.disabled = rows.childElementCount >= maxPlayers;
-    removeButton.disabled = rows.childElementCount <= minPlayers;
-  }
-
-  for (let seat = 0; seat < minPlayers; seat++) addPlayerRow();
-  syncPlayerButtons();
-  addButton.addEventListener("click", () => {
-    addPlayerRow();
-    syncPlayerButtons();
-    nameInputs().at(-1)?.focus();
-  });
-  removeButton.addEventListener("click", () => {
-    rows.lastElementChild?.remove();
-    syncPlayerButtons();
-  });
-
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    // a row left blank still means a player, so it takes the name its placeholder shows
-    const colors = colorSelects();
-    const players: Player[] = nameInputs().map((input, seat) => ({
-      name: input.value.trim() || input.placeholder,
-      color: colors[seat].value as PlayerColor,
-      extraPoints: 0,
-    }));
-    if ((form.elements.namedItem("shuffle") as HTMLInputElement).checked) {
-      shuffleInPlace(players, Math.random);
-    }
-
-    const started: GameState = {
-      ...game,
-      players,
-      citiesKnights: citiesKnights.checked,
-      targetPoints: Number(target.value) || 10,
-      startedAt: Date.now(),
-    };
-    saveGame(started);
-    runGame(started, board);
   });
 }
 
@@ -450,29 +202,11 @@ function runGame(
   const revealEl = root.querySelector("#play-reveal") as HTMLDialogElement;
   const knightEl = root.querySelector("#play-knight") as HTMLDialogElement;
 
-  const takings = (payouts: Payout[], verb: string): string[] =>
-    payouts.flatMap((payout, i) =>
-      Object.keys(payout).length > 0
-        ? [`<li>${playerTag(state.players[i])} ${verb} <strong>${payoutText(payout)}</strong></li>`]
-        : []
-    );
-
-  const nameList = (seats: number[]) =>
-    seats.map((seat) => escapeHtml(state.players[seat].name)).join(" and ");
-
-  function barbarianOutcome(defended: boolean, seats: number[]): string {
-    if (!defended) return `The barbarians win. ${nameList(seats)} ${seats.length === 1 ? "loses" : "each lose"} a city.`;
-    if (seats.length === 0) return "Catan holds, though no knight was awake to defend it.";
-    return seats.length === 1
-      ? `Catan holds. ${nameList(seats)} is Defender of Catan and takes a victory point.`
-      : `Catan holds. ${nameList(seats)} tie as defenders and each take a progress card.`;
-  }
-
   function barbarianHtml(): string {
     if (barbariansResolved(state)) {
       const owing = pendingPillage(state);
       return owing.length > 0
-        ? `<p class="play-alert">${nameList(owing)}: tap the city the barbarians take.</p>`
+        ? `<p class="play-alert">${nameList(state, owing)}: tap the city the barbarians take.</p>`
         : "";
     }
     const { cities, strength, defended, players } = barbarianOutlook(state);
@@ -482,7 +216,7 @@ function runGame(
         <p><strong>The barbarians attack.</strong> ${cities} ${cities === 1 ? "city" : "cities"}
           against ${knights} in active knights
           (${state.players.map((player, seat) => `${escapeHtml(player.name)} ${strength[seat]}`).join(", ")}).</p>
-        <p>${barbarianOutcome(defended, players)}</p>
+        <p>${barbarianOutcome(state, defended, players)}</p>
         <div class="play-actions">
           <button class="btn btn-secondary" data-action="barbarians">Resolve the attack</button>
         </div>
@@ -491,7 +225,7 @@ function runGame(
 
   function turnHtml(): string {
     const players = state.players;
-    const opening = takings(startingCards(state, vertices), "starts with");
+    const opening = takings(state, startingCards(state, vertices), "starts with");
     const openingHtml = opening.length > 0 ? `<ul class="play-payouts">${opening.join("")}</ul>` : "";
     const undo = `<button class="play-link" data-action="undo" ${undoStack.length > 0 ? "" : "disabled"}>Undo</button>`;
 
@@ -568,7 +302,7 @@ function runGame(
     }
 
     const shown = dice ? `${dice[0]} + ${dice[1]} = ${last.total}` : String(last.total);
-    const collecting = takings(last.payouts, "takes");
+    const collecting = takings(state, last.payouts, "takes");
     let detail: string;
     if (last.total === 7) {
       detail = `<p>Anyone holding more than seven cards discards half. ${escapeHtml(player.name)} moves the robber${seafaring ? ", or the pirate from the Placing row" : ""}: tap its new hex.</p>`;
@@ -615,86 +349,6 @@ function runGame(
     });
   }
 
-  function historyHtml(): string {
-    const players = state.players;
-    const byTurn = new Map<number, LedgerEntry[]>();
-    for (const entry of state.ledger) {
-      const entries = byTurn.get(entry.turn);
-      if (entries) entries.push(entry);
-      else byTurn.set(entry.turn, [entry]);
-    }
-
-    const hexName = (index: number) => {
-      const hex = state.hexes[index];
-      return `${HEX_LABEL[hex.type]}${hex.number === undefined ? "" : ` ${hex.number}`}`;
-    };
-    const line = (entry: LedgerEntry): string => {
-      if (entry.kind === "award") {
-        return entry.player === null
-          ? `Nobody holds ${AWARD_LABEL[entry.award]}`
-          : `${playerTag(players[entry.player])} takes ${AWARD_LABEL[entry.award]}`;
-      }
-      if (entry.kind === "barbarians") return barbarianOutcome(entry.defended, entry.players);
-      if (entry.kind === "metropolis") {
-        return entry.player === null
-          ? `Nobody holds the ${TRACK_LABEL[entry.track]} metropolis`
-          : `${playerTag(players[entry.player])} builds the ${TRACK_LABEL[entry.track]} metropolis`;
-      }
-      const who = playerTag(players[entry.player]);
-      switch (entry.kind) {
-        case "roll": {
-          const roll = state.rolls[entry.roll];
-          const collected = takings(roll.payouts, "takes");
-          return `${who} rolls <strong>${roll.total}</strong>${collected.length > 0 ? `<ul>${collected.join("")}</ul>` : ""}`;
-        }
-        case "knight":
-          return `${who} plays a Knight`;
-        case "roadBuilding":
-          return `${who} plays Road Building`;
-        case "robber":
-          return `${who} moves the robber to ${hexName(entry.hex)}`;
-        case "explore":
-          return `${who} explores ${hexName(entry.hex)}`;
-        case "pillage":
-          return `${who} loses a city to the barbarians`;
-        case "troop":
-          return `${who} ${KNIGHT_ACTION_TEXT[entry.action]}`;
-        case "build":
-          return entry.free ? `${who} places a ${entry.piece}` : `${who} builds a ${entry.piece}`;
-        case "card":
-          return `${who} buys a development card`;
-        case "wall":
-          return `${who} builds a city wall`;
-        case "improve":
-          return `${who} raises ${TRACK_LABEL[entry.track]} to level ${entry.level}`;
-        case "pirate":
-          return `${who} moves the pirate`;
-      }
-    };
-
-    const groups: string[] = [];
-    for (let turn = state.turn; turn >= -1; turn--) {
-      const lines = (byTurn.get(turn) ?? []).map((entry) => {
-        const cost = entryCost(entry);
-        const paid = cost && Object.keys(cost).length > 0 ? ` <span class="play-muted">${payoutText(cost)}</span>` : "";
-        return `<li>${line(entry)}${paid}</li>`;
-      });
-      if (turn === -1) {
-        lines.push(...takings(startingCards(state, vertices), "starts with"));
-        if (lines.length === 0) continue;
-      }
-      const heading =
-        turn === -1 ? "Setup" : `Turn ${turn + 1} · ${playerTag(players[turn % players.length])}`;
-      groups.push(
-        `<h3>${heading}</h3><ul>${lines.join("") || `<li class="play-muted">Nothing yet.</li>`}</ul>`
-      );
-    }
-
-    return `
-      <h2>History <span class="play-muted">newest turn first</span></h2>
-      <div class="play-history">${groups.join("")}</div>`;
-  }
-
   function toolbarHtml(): string {
     const modeChips = (options: Mode[]) => `
       <div class="play-chips">
@@ -735,158 +389,6 @@ function runGame(
         <button class="play-chip" data-action="zoom">Zoom ${ZOOM_STEPS[zoom] === 1 ? "in" : `${ZOOM_STEPS[zoom]}x`}</button>
       </div>
       <p class="play-muted">${movingKnight ? "Tap the corner the knight moves to." : MODE_HINT[mode]}</p>`;
-  }
-
-  function scoresHtml(): string {
-    const points = playerPoints(state);
-    const built = state.players.map(() => 0);
-    for (const building of Object.values(state.buildings)) {
-      built[building.player] += building.kind === "city" ? 2 : 1;
-    }
-    const roads = roadLengths(state, edges);
-    const knights = knightsPlayed(state);
-    // Cities & Knights has no Largest Army
-    const army = !state.citiesKnights;
-    const troops = knightStrength(state);
-    const cloth = clothCollected(state);
-    const villages = state.hexes.some((hex) => hex.type === "village");
-    const winner = points.findIndex((total) => total >= state.targetPoints);
-
-    return `
-      <h2>Scores <span class="play-muted">first to ${state.targetPoints}</span></h2>
-      ${
-        winner === -1
-          ? ""
-          : `<div class="play-alert">
-              <p>${escapeHtml(state.players[winner].name)} has reached ${points[winner]} points.</p>
-              <div class="play-actions"><button class="btn btn-secondary" data-action="end">Finish and record the game</button></div>
-            </div>`
-      }
-      <div class="play-table-wrap">
-        <table class="play-table play-table--scores">
-          <thead>
-            <tr><th>Player</th><th>Board</th><th>Road</th><th>${army ? "Army" : "Knights"}</th><th>Other</th><th>Pts</th></tr>
-          </thead>
-          <tbody>
-            ${state.players
-              .map(
-                (player, i) => `
-              <tr>
-                <th scope="row">${playerTag(player)}</th>
-                <td>${built[i]}</td>
-                <td>
-                  <span class="play-award" data-held="${state.longestRoad === i}"
-                    title="Longest unbroken road">${roads[i]}</span>
-                </td>
-                <td>${
-                  army
-                    ? `<span class="play-award" data-held="${state.largestArmy === i}"
-                        title="Knights played">${knights[i]}</span>`
-                    : `<span title="Active strength of all knights">${troops.active[i]} of ${troops.total[i]}</span>`
-                }</td>
-                <td class="play-table__stepper">
-                  <button data-action="extra" data-value="${i}:-1" aria-label="Remove a point">-</button>
-                  <span>${player.extraPoints}</span>
-                  <button data-action="extra" data-value="${i}:1" aria-label="Add a point">+</button>
-                </td>
-                <td class="play-table__total">${points[i]}</td>
-              </tr>`
-              )
-              .join("")}
-          </tbody>
-        </table>
-      </div>
-      <p class="play-muted">
-        Road is each player's longest run${army ? " and Army their knights played" : ""}. A
-        highlighted number holds the award for two points: five roads${army ? " or three knights" : ""}
-        at least, and more than anyone else.
-        ${army ? "" : "Knights is the strength awake out of all a player has on the board."}
-        ${villages ? `Cloth so far: ${state.players.map((player, i) => `${escapeHtml(player.name)} ${cloth[i]}`).join(", ")}; every two are a point.` : ""}
-        Use Other for victory point cards and island bonuses.
-      </p>`;
-  }
-
-  /** Cities & Knights only: the improvements, walls and metropolises that sit off the board. */
-  function cityHtml(): string {
-    const stepper = (action: string, key: string, value: number, held: boolean) => `
-      <td class="play-table__stepper">
-        <button data-action="${action}" data-value="${key}:-1" aria-label="One fewer">-</button>
-        <span class="play-award" data-held="${held}">${value}</span>
-        <button data-action="${action}" data-value="${key}:1" aria-label="One more">+</button>
-      </td>`;
-    return `
-      <h2>City improvements <span class="play-muted">levels out of ${MAX_IMPROVEMENT}</span></h2>
-      <div class="play-table-wrap">
-        <table class="play-table">
-          <thead>
-            <tr><th>Player</th>${TRACKS.map((track) => `<th>${TRACK_LABEL[track]}</th>`).join("")}<th>Walls</th></tr>
-          </thead>
-          <tbody>
-            ${state.players
-              .map(
-                (player, i) => `
-              <tr>
-                <th scope="row">${playerTag(player)}</th>
-                ${TRACKS.map((track) =>
-                  stepper("improve", `${i}:${track}`, improvementLevel(state, i, track), state.metropolis[track] === i)
-                ).join("")}
-                ${stepper("wall", String(i), wallCount(state, i), false)}
-              </tr>`
-              )
-              .join("")}
-          </tbody>
-        </table>
-      </div>
-      <p class="play-muted">
-        A highlighted level holds that track's metropolis, worth two points and safe from the
-        barbarians. Each level costs its own number in the track's commodity; a wall is two brick.
-      </p>`;
-  }
-
-  function statsHtml(): string {
-    const rolls = state.rolls.length;
-    const counts = TOTALS.map((total) => state.rolls.filter((roll) => roll.total === total).length);
-    const expected = TOTALS.map((total) => (rolls * waysToRoll(total)) / 36);
-    const tallest = Math.max(1, ...counts, ...expected);
-    const { received, expected: due } = productionTotals(state);
-    const spent = buildSpending(state);
-
-    return `
-      <h2>Dice <span class="play-muted">${rolls} rolls · ${elapsed(state.startedAt)} played</span></h2>
-      <div class="histogram" role="img" aria-label="How often each total has come up">
-        ${TOTALS.map(
-          (total, i) => `
-          <div class="histogram__column">
-            <div class="histogram__plot">
-              <div class="histogram__bar" style="height: ${(counts[i] / tallest) * 100}%"></div>
-              <div class="histogram__expected" style="bottom: ${(expected[i] / tallest) * 100}%"></div>
-            </div>
-            <span class="histogram__count">${counts[i]}</span>
-            <span class="histogram__total">${total}</span>
-          </div>`
-        ).join("")}
-      </div>
-      <p class="play-muted">Bars are rolls so far; the line is what even dice would give.</p>
-      <div class="play-table-wrap">
-        <table class="play-table">
-          <thead><tr><th>Player</th><th>Cards</th><th>Expected</th><th>Luck</th><th>Spent</th></tr></thead>
-          <tbody>
-            ${state.players
-              .map((player, i) => {
-                const luck = received[i] - due[i];
-                return `
-              <tr>
-                <th scope="row">${playerTag(player)}</th>
-                <td>${received[i]}</td>
-                <td>${due[i].toFixed(1)}</td>
-                <td class="play-table__total">${luck >= 0 ? "+" : ""}${luck.toFixed(1)}</td>
-                <td>${spent[i]}</td>
-              </tr>`;
-              })
-              .join("")}
-          </tbody>
-        </table>
-      </div>`;
   }
 
   function render(): void {
@@ -976,11 +478,11 @@ function runGame(
     setHtml(pieceLayer, roadHtml + cornerHtml);
     setHtml(turnEl, turnHtml());
     setHtml(toolbarEl, toolbarHtml());
-    setHtml(scoresEl, scoresHtml());
+    setHtml(scoresEl, scoresHtml(state, edges));
     cityEl.hidden = !state.citiesKnights;
-    if (state.citiesKnights) setHtml(cityEl, cityHtml());
-    setHtml(statsEl, statsHtml());
-    setHtml(historyEl, historyHtml());
+    if (state.citiesKnights) setHtml(cityEl, cityHtml(state));
+    setHtml(statsEl, statsHtml(state));
+    setHtml(historyEl, historyHtml(state, vertices));
   }
 
   function show(next: GameState): void {
@@ -1385,9 +887,9 @@ const entry = game && getBoardEntry(game.boardId);
 if (watching) {
   watchGame(watching);
 } else if (!game || !entry) {
-  renderEmpty();
+  renderEmpty(root);
 } else {
   const board = buildBoard(entry.template);
-  if (game.players.length === 0) renderSetup(game, entry, board);
+  if (game.players.length === 0) renderSetup(root, game, entry, (started) => runGame(started, board));
   else runGame(game, board);
 }
