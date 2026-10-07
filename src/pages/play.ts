@@ -168,8 +168,11 @@ function runGame(
 
   const layout = board.recommendedLayout;
   const { vertices, edges } = boardGeometry(board);
-  // fog may turn out to be land, so only open sea is ruled out
-  const touchesLand = (hexes: number[]) => hexes.some((index) => layout[index].type !== "sea");
+  // Judged on the board as dealt: shuffling moves land and sea about on several maps, so the
+  // rule book's layout says nothing about where this game's coast is. Fog may turn out to be
+  // land, so only open sea is ruled out.
+  const touchesLand = (hexes: number[]) =>
+    hexes.some((index) => initial.hexes[index].type !== "sea");
   const buildable = vertices.filter((vertex) => touchesLand(vertex.hexes));
   // ships cross open water, so Seafarers maps keep every hex side
   const seafaring = state.boardId.startsWith("sf");
@@ -419,7 +422,8 @@ function runGame(
     } else {
       // a settlement can go at the end of a road or a ship, but a road only continues roads.
       // A knight being moved stays on its owner's roads, whoever is selected as building.
-      const owner = movingKnight ? state.knights[movingKnight].player : builder;
+      const moving = movingKnight === undefined ? undefined : state.knights[movingKnight];
+      const owner = moving?.player ?? builder;
       const network = networkCorners(state, edges, owner, layingSide ? layingShip : undefined);
       cornerOpen = (corner) => network.has(corner);
       sideOpen = (ends) => ends.some((end) => network.has(end));
@@ -532,8 +536,12 @@ function runGame(
       </div>`;
   }
 
+  /** Counts starts and stops, so a start that was cancelled while loading can tell. */
+  let shareRun = 0;
+
   async function startHosting(room: string): Promise<void> {
-    host = await hostRoom(
+    const run = ++shareRun;
+    const started = await hostRoom(
       room,
       () => ({ state, dice }),
       (count, error) => {
@@ -542,6 +550,12 @@ function runGame(
         void renderShare();
       }
     );
+    // Stop sharing may have been tapped while the connection library was still loading
+    if (run !== shareRun) {
+      started.close();
+      return;
+    }
+    host = started;
   }
 
   function roll(total: number, event?: EventDie): void {
@@ -693,6 +707,8 @@ function runGame(
     "knight-do": (value) => {
       const corner = knightMenu;
       knightEl.close();
+      // whatever is chosen replaces a move left half-made, which may have been of this knight
+      movingKnight = undefined;
       if (!corner) return;
       const owner = state.knights[corner].player;
       if (value === "activate") commit(activateKnight(state, corner));
@@ -775,6 +791,7 @@ function runGame(
       if (state.room) void navigator.clipboard.writeText(watchUrl(state.room));
     },
     "share-stop": () => {
+      shareRun++;
       host?.close();
       host = undefined;
       viewers = 0;

@@ -24,8 +24,12 @@ export const PLAYER_COLORS = [
 ] as const;
 export type PlayerColor = (typeof PLAYER_COLORS)[number];
 
-/** Anything a roll can hand out. "choice" is a gold field's pick of any resource. */
-export type Card = Resource | "choice" | Commodity;
+/**
+ * Anything a roll can hand out. "choice" is a gold field's pick of any resource, and
+ * "clothToken" is what a Cloth for Catan village pays - kept apart from the Cities & Knights
+ * cloth commodity, which is spent, where the tokens are scored.
+ */
+export type Card = Resource | "choice" | Commodity | "clothToken";
 export type Payout = Partial<Record<Card, number>>;
 
 export type BuildingKind = "settlement" | "city";
@@ -203,7 +207,7 @@ function eachProduction(
       const hex = state.hexes[index];
       if (hex.type !== "village" || trading.has(`${player}:${index}`)) continue;
       trading.add(`${player}:${index}`);
-      visit(player, hex, ["cloth"]);
+      visit(player, hex, ["clothToken"]);
     }
   }
 
@@ -582,15 +586,11 @@ export function playerPoints(state: GameState): number[] {
   return points;
 }
 
-/**
- * Cloth tokens taken from villages, two of which are worth a point. Only counted on maps
- * that have villages, since Cities & Knights uses the same word for a commodity.
- */
+/** Cloth tokens taken from villages, two of which are worth a point. */
 export function clothCollected(state: GameState): number[] {
   const cloth = state.players.map(() => 0);
-  if (!state.hexes.some((hex) => hex.type === "village")) return cloth;
   for (const roll of state.rolls) {
-    roll.payouts.forEach((payout, player) => (cloth[player] += payout.cloth ?? 0));
+    roll.payouts.forEach((payout, player) => (cloth[player] += payout.clothToken ?? 0));
   }
   return cloth;
 }

@@ -40,6 +40,7 @@ const CARDS: readonly Card[] = [
   "paper",
   "cloth",
   "coin",
+  "clothToken",
 ];
 const EVENTS: readonly EventDie[] = ["ship", "yellow", "blue", "green"];
 const PIECES: readonly Piece[] = ["settlement", "city", "road", "ship"];
@@ -183,6 +184,10 @@ export function parseGame(raw: unknown): GameState | undefined {
       const seats = parseAll(item.players, (seat) => (isSeat(seat) ? seat : undefined));
       return seats && { kind: "barbarians", turn, defended: item.defended === true, players: seats };
     }
+    if (item.kind === "metropolis") {
+      if (!isHolder(player) || !isOneOf(TRACKS, item.track)) return undefined;
+      return { kind: "metropolis", turn, player, track: item.track };
+    }
     if (item.kind === "award") {
       if (!isHolder(player)) return undefined;
       if (item.award !== "longestRoad" && item.award !== "largestArmy") return undefined;
@@ -193,10 +198,6 @@ export function parseGame(raw: unknown): GameState | undefined {
       return isOneOf(KNIGHT_ACTIONS, item.action)
         ? { kind: "troop", turn, player, action: item.action }
         : undefined;
-    }
-    if (item.kind === "metropolis") {
-      if (!isHolder(player) || !isOneOf(TRACKS, item.track)) return undefined;
-      return { kind: "metropolis", turn, player, track: item.track };
     }
     if (!isSeat(player)) return undefined;
     if (item.kind === "improve") {

@@ -21,6 +21,7 @@ export const CARD_LABEL: Record<Card, string> = {
   paper: "Paper",
   cloth: "Cloth",
   coin: "Coin",
+  clothToken: "Cloth token",
 };
 
 export const EVENT_LABEL: Record<EventDie, string> = {

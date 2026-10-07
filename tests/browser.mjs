@@ -210,6 +210,31 @@ try {
   await tap('[data-action="knight-do"][data-value=promote]');
   check("a knight can be recruited, activated and promoted", await js(`(() => { const [knight] = Object.values(${game}.knights); return knight.level === 2 && knight.active; })()`));
 
+  // On maps whose land and sea are shuffled, the coast is wherever this deal put it.
+  await open("map-generator.html#board=sf-new-world&seed=7", 1200);
+  await js(`localStorage.clear()`);
+  await tap("#start-game");
+  await sleep(900);
+  await tap("#play-setup button[type=submit]");
+  await sleep(200);
+  const short = await js(`(() => {
+    const markers = [...document.querySelectorAll(".vertex--open")].map((marker) => marker.getBoundingClientRect())
+      .map((box) => [box.x + box.width / 2, box.y + box.height / 2]);
+    return [...document.querySelectorAll(".hex")].filter((tile) => tile.title !== "Sea").filter((tile) => {
+      const box = tile.getBoundingClientRect();
+      const [x, y, reach] = [box.x + box.width / 2, box.y + box.height / 2, Math.max(box.width, box.height) * 0.55];
+      return markers.filter(([mx, my]) => Math.hypot(mx - x, my - y) < reach).length !== 6;
+    }).length;
+  })()`);
+  check("every land hex on a shuffled map offers all six corners", short === 0, `${short} land hexes are missing corners`);
+
+  await open("rules.html");
+  const lastSection = await js(`[...document.querySelectorAll(".rules-contents a")].at(-1).getAttribute("href")`);
+  await open(`rules.html${lastSection}`);
+  await js(`window.scrollTo(0, 0)`);
+  await tap(`.rules-contents a[href="${lastSection}"]`);
+  check("a link to the section already open still jumps to it", await js(`scrollY > 100`));
+
   await startGame("sf-cloth-for-catan", false);
   check("Seafarers offers ships and the pirate", await js(`!!document.querySelector('[data-action=mode][data-value=ship]') && !!document.querySelector('[data-action=mode][data-value=pirate]')`));
   await tap('[data-action=mode][data-value=pirate]');

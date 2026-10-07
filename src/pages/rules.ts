@@ -115,5 +115,13 @@ searchEl.addEventListener("input", () => {
   renderSearch(searchEl.value);
 });
 
+// A link to the address already showing changes nothing, so no event follows it; without
+// this, clicking the same section twice, or a result of a search for the current section,
+// would do nothing.
+rootEl.addEventListener("click", (event) => {
+  const link = (event.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]');
+  if (link?.getAttribute("href") === window.location.hash) showFromHash();
+});
+
 window.addEventListener("hashchange", showFromHash);
 showFromHash();

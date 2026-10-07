@@ -605,8 +605,11 @@ test("the first to the fourth level holds a metropolis until someone reaches the
   state = lowerImprovement(state, 1, "trade");
   assert.equal(improvementLevel(state, 1, "trade"), 4);
   assert.equal(state.metropolis.trade, 1);
-  assert.equal(lowerImprovement(lowerImprovement(state, 1, "trade"), 0, "trade").metropolis.trade, undefined);
-  assert.ok(parseGame(JSON.parse(JSON.stringify(state))));
+  const nobody = lowerImprovement(lowerImprovement(state, 1, "trade"), 0, "trade");
+  assert.equal(nobody.metropolis.trade, undefined);
+  // the history then holds a metropolis line naming nobody, which must still load
+  assert.ok(nobody.ledger.some((entry) => entry.kind === "metropolis" && entry.player === null));
+  for (const saved of [state, nobody]) assert.ok(parseGame(JSON.parse(JSON.stringify(saved))));
 });
 
 test("a player whose only city is a metropolis is safe from the barbarians", () => {
@@ -630,7 +633,9 @@ test("a cloth village pays whoever has a ship on it, and two cloth make a point"
 
   let state: GameState = { ...startedGame(), setup: null, hexes: layout };
   state = toggleRoad(state, geometry.edges, side.id, 1, { ship: true });
-  assert.deepEqual(payoutForRoll(state, geometry.vertices, number, geometry.edges)[1], { cloth: 1 });
+  assert.deepEqual(payoutForRoll(state, geometry.vertices, number, geometry.edges)[1], {
+    clothToken: 1,
+  });
   // without the map's sides the village cannot be reached, which is how old callers behave
   assert.deepEqual(payoutForRoll(state, geometry.vertices, number)[1], {});
 
@@ -638,6 +643,18 @@ test("a cloth village pays whoever has a ship on it, and two cloth make a point"
     state = endTurn(recordRoll(state, geometry.vertices, number, undefined, 0, geometry.edges));
   }
   assert.deepEqual(playerPoints(state), [0, 1]);
+
+  // with Cities & Knights on as well, the cloth a pasture city yields is a commodity to
+  // spend and must not be scored as village tokens
+  const pasture = layout.findIndex((hex) => hex.type === "pasture" && hex.number !== undefined);
+  const corner = geometry.vertices.find((v) => v.hexes.includes(pasture) && v.hexes.every((i) => layout[i].type !== "village"))!;
+  let mixed: GameState = { ...startedGame(), setup: null, hexes: layout, citiesKnights: true };
+  mixed = cycleBuilding(cycleBuilding(mixed, geometry.edges, corner.id, 0), geometry.edges, corner.id, 0);
+  for (let roll = 0; roll < 4; roll++) {
+    mixed = endTurn(recordRoll(mixed, geometry.vertices, layout[pasture].number as number, undefined, 0, geometry.edges));
+  }
+  assert.ok((mixed.rolls[0].payouts[0].cloth ?? 0) > 0);
+  assert.deepEqual(playerPoints(mixed), [2, 0]);
 });
 
 test("the pirate is tracked and written into the history", () => {
