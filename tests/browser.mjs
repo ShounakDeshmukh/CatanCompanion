@@ -227,7 +227,8 @@ try {
   await tap("[data-action=sound]");
   await tap("[data-action=next]");
   await tap('[data-action=roll][data-value="7"]');
-  check("with sound on, a seven rattles the dice and plays its two notes", await js(`window.played.notes === 3 && window.played.rattles === 3 && document.querySelector("[data-action=sound]").innerText === "Sound on"`), JSON.stringify(await js(`window.played`)));
+  // switching sound on knocks once, which is one note and one rattle of those counted
+  check("with sound on, a seven rattles the dice and plays its two notes", await js(`window.played.notes === 3 && window.played.rattles === 4 && document.querySelector("[data-action=sound]").innerText === "Sound on"`), JSON.stringify(await js(`window.played`)));
   await js(`window.confirm = () => true`);
   // if the card cannot be drawn there is no result to show, and the game must survive that
   await js(`(() => { window.alert = (said) => (window.alerted = said);

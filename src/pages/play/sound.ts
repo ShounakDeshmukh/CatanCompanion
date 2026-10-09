@@ -17,22 +17,23 @@ interface Note {
 /**
  * The sounds are made on the spot, not played from files, so there is nothing to download
  * and they work offline. A rattle is a burst of filtered noise; everything else is notes.
+ * They are pitched for a phone's speaker, which gives out next to nothing below 300 Hz.
  */
 const TUNES: Record<Cue, { rattles?: number[]; notes?: Note[]; buzz: number | number[] }> = {
   roll: { rattles: [0, 0.07, 0.13, 0.2, 0.29, 0.4], buzz: 20 },
   seven: {
     rattles: [0, 0.07, 0.13],
     notes: [
-      { at: 0.2, length: 0.2, from: 392, wave: "triangle" },
-      { at: 0.4, length: 0.4, from: 311, wave: "triangle" },
+      { at: 0.2, length: 0.2, from: 784, wave: "triangle" },
+      { at: 0.4, length: 0.4, from: 622, wave: "triangle" },
     ],
     buzz: [40, 60, 40],
   },
-  build: { notes: [{ at: 0, length: 0.09, from: 220, to: 110, loudness: 0.3 }], buzz: 10 },
+  build: { rattles: [0], notes: [{ at: 0, length: 0.08, from: 760, to: 380 }], buzz: 10 },
   barbarians: {
     notes: [
-      { at: 0, length: 1, from: 82, to: 55, wave: "sawtooth", loudness: 0.18 },
-      { at: 0.05, length: 1, from: 61, to: 41, wave: "sawtooth", loudness: 0.18 },
+      { at: 0, length: 1, from: 164, to: 110, wave: "sawtooth", loudness: 0.25 },
+      { at: 0.05, length: 1, from: 123, to: 82, wave: "sawtooth", loudness: 0.25 },
     ],
     buzz: [200, 80, 200, 80, 400],
   },
@@ -56,6 +57,16 @@ const TUNES: Record<Cue, { rattles?: number[]; notes?: Note[]; buzz: number | nu
 
 let audio: AudioContext | undefined;
 
+/**
+ * Starts the browser's sound. An iPhone treats a page's sound as an alert and mutes it with
+ * the ringer switch unless told it is playback, like music, which Safari allows a page to do.
+ */
+function startAudio(): AudioContext {
+  const session = (navigator as { audioSession?: { type: string } }).audioSession;
+  if (session) session.type = "playback";
+  return new AudioContext();
+}
+
 /** Fades a source in over a few milliseconds and out by its end, so it never clicks. */
 function shaped(context: AudioContext, start: number, length: number, loudness: number): GainNode {
   const gain = context.createGain();
@@ -71,7 +82,7 @@ function playNote(context: AudioContext, start: number, note: Note): void {
   oscillator.type = note.wave ?? "sine";
   oscillator.frequency.setValueAtTime(note.from, start);
   if (note.to) oscillator.frequency.exponentialRampToValueAtTime(note.to, start + note.length);
-  oscillator.connect(shaped(context, start, note.length, note.loudness ?? 0.2));
+  oscillator.connect(shaped(context, start, note.length, note.loudness ?? 0.4));
   oscillator.start(start);
   oscillator.stop(start + note.length);
 }
@@ -87,7 +98,9 @@ function playRattle(context: AudioContext, start: number): void {
   const knock = context.createBiquadFilter();
   knock.type = "bandpass";
   knock.frequency.value = 1800 + Math.random() * 1400;
-  noise.connect(knock).connect(shaped(context, start, length, 0.35));
+  // a wide band, so enough of the noise comes through to be heard
+  knock.Q.value = 0.6;
+  noise.connect(knock).connect(shaped(context, start, length, 0.9));
   noise.start(start);
 }
 
@@ -100,7 +113,7 @@ export function cue(name: Cue): void {
   if (!loadPrefs().sound) return;
   const { rattles = [], notes = [], buzz } = TUNES[name];
   if ("vibrate" in navigator) navigator.vibrate(buzz);
-  const context = (audio ??= new AudioContext());
+  const context = (audio ??= startAudio());
   void context.resume();
   const start = context.currentTime;
   for (const at of rattles) playRattle(context, start + at);
