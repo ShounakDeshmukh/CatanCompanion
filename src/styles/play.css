@@ -653,11 +653,45 @@
   margin-bottom: 0.8rem;
 }
 
-/* the result card, shown as it will be shared */
+/* the result card, shown as it will be shared; it is dealt onto the page as it arrives */
 .play-card {
   display: block;
   width: 100%;
   border-radius: 12px;
+  animation: card-in 600ms cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    translate: 0 2.5rem;
+    scale: 0.94;
+  }
+}
+
+/* thrown over the whole page when a game is won, and never in the way of a tap */
+.confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confetti i {
+  position: absolute;
+  top: -1.5rem;
+  width: 0.55rem;
+  height: 0.9rem;
+  border-radius: 1px;
+  animation: confetti-fall linear both;
+}
+
+@keyframes confetti-fall {
+  to {
+    translate: var(--drift) 110vh;
+    rotate: var(--spin);
+  }
 }
 
 .play-empty .btn:disabled {
@@ -725,6 +759,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .play-card,
   .die,
   .is-new::before,
   .is-rolled::after,

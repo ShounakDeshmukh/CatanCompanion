@@ -1,6 +1,6 @@
 import type { CatanBoard } from "../../data/boards/types";
 import { summarize } from "../../lib/gameHistory";
-import type { GameState } from "../../lib/gameState";
+import type { GameState, PlayerColor } from "../../lib/gameState";
 import { replay } from "../../lib/replay";
 import { SITE_URL } from "../../lib/site";
 import { playerTag } from "./format";
@@ -23,6 +23,28 @@ async function shareFile(file: File): Promise<void> {
   link.download = file.name;
   link.click();
   URL.revokeObjectURL(link.href);
+}
+
+const CONFETTI_PIECES = 80;
+const CONFETTI_MS = 5000;
+
+/** Showers the page with confetti, mostly in the winner's colour, and clears it away after. */
+function celebrate(color: PlayerColor): void {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const between = (low: number, high: number) => low + Math.random() * (high - low);
+  const paints = [`var(--player-${color})`, `var(--player-${color})`, "#e9b949", "var(--parchment-light)"];
+  const shower = document.createElement("div");
+  shower.className = "confetti";
+  shower.setAttribute("aria-hidden", "true");
+  shower.innerHTML = Array.from(
+    { length: CONFETTI_PIECES },
+    (_, piece) =>
+      `<i style="left: ${between(0, 100)}%; background: ${paints[piece % paints.length]};
+        --drift: ${between(-12, 12)}vw; --spin: ${between(-900, 900)}deg;
+        animation-delay: ${between(0, 900)}ms; animation-duration: ${between(2200, 3800)}ms"></i>`
+  ).join("");
+  document.body.appendChild(shower);
+  setTimeout(() => shower.remove(), CONFETTI_MS);
 }
 
 /**
@@ -48,11 +70,12 @@ export async function renderResult(
   if (!picture) throw new Error("This browser cannot save the result as a picture");
 
   const [winner] = record.players;
+  const won = winner.points >= record.target;
   // a viewer's page hides the controls of a game in play, which these are not
   root.classList.remove("play--viewing");
   root.innerHTML = `
     <section class="card play-empty">
-      <h2>${playerTag(winner)} ${winner.points >= record.target ? "wins" : "was leading"}</h2>
+      <h2>${playerTag(winner)} ${won ? "wins" : "was leading"}</h2>
       <p class="play-muted">The result is not kept on this device, so share or save it before
         leaving the page.</p>
       <div class="play-chips">
@@ -81,6 +104,8 @@ export async function renderResult(
   };
 
   offer("#play-share-picture", "Share picture", picture, "catan-result.png");
+  // a game stopped early has a leader, which is not the same as a winner
+  if (won) celebrate(winner.color);
 
   const moments = replay(state);
   const noReplay = () => root.querySelector("#play-share-replay")?.remove();
