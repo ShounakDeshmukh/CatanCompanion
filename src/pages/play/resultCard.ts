@@ -1,7 +1,7 @@
 import grainArt from "../../assets/parchment.webp";
 import type { CatanBoard } from "../../data/boards/types";
 import type { GameRecord } from "../../lib/gameHistory";
-import type { GameState, PlayerColor } from "../../lib/gameState";
+import type { Award, GameState, PlayerColor } from "../../lib/gameState";
 import type { BoardView } from "../../lib/replay";
 import { SITE_URL } from "../../lib/site";
 import {
@@ -21,6 +21,11 @@ const HEIGHT = 1350;
 const MUTED = "#6b5738";
 
 const GRAIN_SCALE = 2.5;
+const GOLD = "#e3b23c";
+const AWARD_NAME: Record<Award, string> = {
+  longestRoad: "Longest Road",
+  largestArmy: "Largest Army",
+};
 
 /** The board starts under the heading and the standings end above the closing lines. */
 const BOARD_TOP = 262;
@@ -65,6 +70,28 @@ export function cardCanvas(scale: number = 1): { canvas: HTMLCanvasElement; draw
   return { canvas, draw };
 }
 
+/** A crown for the winner: three points on a band, `size` across, its top left at x and y. */
+function drawCrown(draw: CanvasRenderingContext2D, x: number, y: number, size: number): void {
+  const points = [
+    [0, 0.25],
+    [0.27, 0.55],
+    [0.5, 0],
+    [0.73, 0.55],
+    [1, 0.25],
+    [0.9, 0.85],
+    [0.1, 0.85],
+  ];
+  draw.beginPath();
+  for (const [across, down] of points) draw.lineTo(x + across * size, y + down * size);
+  draw.closePath();
+  draw.fillStyle = GOLD;
+  draw.fill();
+  draw.strokeStyle = INK;
+  draw.lineWidth = 2;
+  draw.lineJoin = "round";
+  draw.stroke();
+}
+
 /** The parts of the card that differ from one frame of the replay to the next. */
 export interface Scene {
   headline: string;
@@ -72,13 +99,20 @@ export interface Scene {
   mark?: Mark;
   /** The standings to show, in the order the game finished in. */
   players: GameRecord["players"];
+  /** The seat of whoever won, once that is being said. */
+  crowned?: number;
 }
 
 /** The card as it is shared on its own: who won, the final board and the final scores. */
 export function finalScene(record: GameRecord, state: GameState): Scene {
   const [winner] = record.players;
-  const headline = `${winner.name} ${winner.points >= record.target ? "wins" : "leads"}`;
-  return { headline, view: state, players: record.players };
+  const won = winner.points >= record.target;
+  return {
+    headline: `${winner.name} ${won ? "wins" : "leads"}`,
+    view: state,
+    players: record.players,
+    crowned: won ? winner.seat : undefined,
+  };
 }
 
 /**
@@ -148,9 +182,7 @@ export function drawResultCard(
   const board = { x: 80, y: BOARD_TOP, width: WIDTH - 160, height: top - STANDINGS_HEAD - BOARD_TOP };
   paintBoard(draw, scene.view, board, scene.mark);
 
-  text("POINTS", 760, top - 48, `700 22px ${BODY}`, MUTED, "right");
-  text("CARDS", 880, top - 48, `700 22px ${BODY}`, MUTED, "right");
-  text("LUCK", 990, top - 48, `700 22px ${BODY}`, MUTED, "right");
+  text("POINTS", 990, top - 48, `700 22px ${BODY}`, MUTED, "right");
   players.forEach((player, place) => {
     const y = top + place * step;
     draw.strokeStyle = "rgb(43 28 16 / 0.15)";
@@ -169,18 +201,36 @@ export function drawResultCard(
     draw.stroke();
 
     text(player.name, 156, y, `600 ${42 * fit}px ${BODY}`);
-    text(String(player.points), 760, y, `700 ${46 * fit}px ${HEADING}`, INK, "right");
-    text(String(player.cards), 880, y, `400 ${38 * fit}px ${BODY}`, MUTED, "right");
-    text(`${player.luck >= 0 ? "+" : ""}${player.luck.toFixed(1)}`, 990, y, `400 ${38 * fit}px ${BODY}`, MUTED, "right");
+    if (player.seat === scene.crowned) {
+      drawCrown(draw, 156 + draw.measureText(player.name).width + 16 * fit, y - 30 * fit, 30 * fit);
+    }
+    text(String(player.points), 990, y, `700 ${46 * fit}px ${HEADING}`, INK, "right");
+
+    // what the player holds is set out leftwards from the points, the way a table would lay
+    // the award cards beside them
+    let right = 890;
+    for (const award of player.awards) {
+      draw.font = `700 ${24 * fit}px ${BODY}`;
+      const wide = draw.measureText(AWARD_NAME[award]).width + 28 * fit;
+      const tall = 36 * fit;
+      draw.beginPath();
+      draw.roundRect(right - wide, y - 13 * fit - tall / 2, wide, tall, tall / 2);
+      draw.fillStyle = GOLD;
+      draw.fill();
+      draw.strokeStyle = INK;
+      draw.lineWidth = 2;
+      draw.stroke();
+      text(AWARD_NAME[award], right - wide / 2, y - 5 * fit, draw.font, INK, "center");
+      right -= wide + 12 * fit;
+    }
   });
 
-  const luckiest = record.players.reduce((best, player) => (player.luck > best.luck ? player : best));
   const mostRolled = record.rolls.indexOf(Math.max(...record.rolls)) + 2;
   const lines = [
     `${record.turns} turns in about ${minutes} ${minutes === 1 ? "minute" : "minutes"}, first to ${record.target}`,
   ];
   if (record.turns > 0) {
-    lines.push(`The dice favoured ${mostRolled}, and ${luckiest.name} had the luck`);
+    lines.push(`The dice favoured ${mostRolled}, rolled ${record.rolls[mostRolled - 2]} times`);
   }
   lines.forEach((line, index) => text(line, WIDTH / 2, 1196 + index * 40, `400 31px ${BODY}`, INK, "center"));
   text(SITE_URL.replace(/^https:\/\/|\/$/g, ""), WIDTH / 2, 1276, `400 25px ${BODY}`, MUTED, "center");

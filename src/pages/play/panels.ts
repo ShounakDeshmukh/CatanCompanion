@@ -4,12 +4,10 @@ import { MAX_IMPROVEMENT, improvementLevel, wallCount } from "../../lib/expansio
 import { startingCards } from "../../lib/gameSetup";
 import {
   TRACKS,
-  buildSpending,
   clothCollected,
   entryCost,
   knightsPlayed,
   playerPoints,
-  productionTotals,
   roadLengths,
   type GameState,
   type LedgerEntry,
@@ -226,8 +224,6 @@ export function statsHtml(state: GameState): string {
   const counts = TOTALS.map((total) => state.rolls.filter((roll) => roll.total === total).length);
   const expected = TOTALS.map((total) => (rolls * waysToRoll(total)) / 36);
   const tallest = Math.max(1, ...counts, ...expected);
-  const { received, expected: due } = productionTotals(state);
-  const spent = buildSpending(state);
   const pace = turnPace(state);
   const turnTime = (time: number | null) => (time === null ? "-" : clock(time));
 
@@ -251,21 +247,16 @@ export function statsHtml(state: GameState): string {
     <p class="play-muted">Bars are rolls so far; the line is what even dice would give.</p>
     <div class="play-table-wrap">
       <table class="play-table">
-        <thead><tr><th>Player</th><th>Cards</th><th>Expected</th><th>Luck</th><th>Spent</th><th>Turn</th></tr></thead>
+        <thead><tr><th>Player</th><th>Average turn</th></tr></thead>
         <tbody>
           ${state.players
-            .map((player, i) => {
-              const luck = received[i] - due[i];
-              return `
+            .map(
+              (player, i) => `
             <tr>
               <th scope="row">${playerTag(player)}</th>
-              <td>${received[i]}</td>
-              <td>${due[i].toFixed(1)}</td>
-              <td class="play-table__total">${luck >= 0 ? "+" : ""}${luck.toFixed(1)}</td>
-              <td>${spent[i]}</td>
               <td>${turnTime(pace.players[i])}</td>
-            </tr>`;
-            })
+            </tr>`
+            )
             .join("")}
         </tbody>
       </table>

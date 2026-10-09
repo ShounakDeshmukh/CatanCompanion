@@ -32,12 +32,11 @@ import {
   BARBARIAN_TRACK_LENGTH,
   barbarianPosition,
   barbariansAttacked,
-  buildSpending,
   changeExtraPoints,
   currentPlayer,
   cycleBuilding,
   endTurn,
-  expectedProduction,
+  entryCost,
   hasRolled,
   knightsPlayed,
   moveRobber,
@@ -48,7 +47,6 @@ import {
   playRoadBuilding,
   payoutForRoll,
   playerPoints,
-  productionTotals,
   recordRoll,
   roadLengths,
   setLastEvent,
@@ -79,6 +77,17 @@ import { boardGeometry } from "./vertices";
 const board = buildBoard(getBoardEntry("catan-3-4")!.template);
 const hexes = board.recommendedLayout;
 const { vertices, edges } = boardGeometry(board);
+
+/** What each player's lines in the history add up to, to check a line is priced and struck right. */
+function costsPaid(state: GameState): number[] {
+  const paid = state.players.map(() => 0);
+  for (const entry of state.ledger) {
+    const cost = entryCost(entry);
+    if (!cost || !("player" in entry) || entry.player === null) continue;
+    for (const count of Object.values(cost)) paid[entry.player] += count;
+  }
+  return paid;
+}
 
 function startedGame(): GameState {
   return {
@@ -154,15 +163,6 @@ test("the robber blocks its hex", () => {
   assert.deepEqual(payoutForRoll(state, vertices, hexes[fields].number as number), [{}, {}]);
 });
 
-test("expected production is the pips of the adjoining hexes over 36", () => {
-  const corner = vertices.find((v) => v.hexes.filter((i) => hexes[i].type in RESOURCE_BY_HEX).length === 3);
-  assert.ok(corner);
-  const pips = corner.hexes.reduce((sum, i) => sum + hexPips(hexes[i]), 0);
-
-  const state = cycleBuilding(startedGame(), edges, corner.id, 0);
-  assert.deepEqual(expectedProduction(state, vertices), [pips / 36, 0]);
-});
-
 test("a turn is one roll, and passes on only when it is ended", () => {
   const forest = hexIndex("forest");
   const number = hexes[forest].number as number;
@@ -178,7 +178,7 @@ test("a turn is one roll, and passes on only when it is ended", () => {
 
   // upgrading afterwards must not rewrite what that roll paid
   state = cycleBuilding(state, edges, cornerOf(forest).id, 0);
-  assert.equal(productionTotals(state).received[0], 1);
+  assert.deepEqual(state.rolls[0].payouts, [{ wood: 1 }, {}]);
 
   state = endTurn(state, 9);
   assert.equal(currentPlayer(state), 1);
@@ -376,21 +376,21 @@ test("the ledger records builds with their cost and forgets ones taken back", ()
   let state = placeSetupPiece(startedGame(), edges, corners[0]);
   // cut the opening short, as if everyone had finished placing
   state = { ...placeSetupPiece(state, edges, path[0]), setup: null };
-  assert.deepEqual(buildSpending(state), [0, 0]);
+  assert.deepEqual(costsPaid(state), [0, 0]);
 
   state = recordRoll(state, vertices, 7);
   state = moveRobber(state, hexIndex("forest"));
   state = toggleRoad(state, edges, path[1], 0);
   state = cycleBuilding(state, edges, corners[0], 0);
   // a road is two cards and a city five; the opening pieces were free
-  assert.deepEqual(buildSpending(state), [7, 0]);
+  assert.deepEqual(costsPaid(state), [7, 0]);
   assert.deepEqual(
     state.ledger.map((entry) => `${entry.turn}:${entry.kind}:${"piece" in entry ? entry.piece : ""}`),
 ["-1:build:settlement", "-1:build:road", "0:roll:", "0:robber:", "0:build:road", "0:build:city"]
   );
 
   state = toggleRoad(state, edges, path[1], 0);
-  assert.deepEqual(buildSpending(state), [5, 0]);
+  assert.deepEqual(costsPaid(state), [5, 0]);
   assert.equal(state.ledger.some((entry) => entry.kind === "build" && entry.site === path[1]), false);
 });
 
@@ -402,7 +402,7 @@ test("a ship costs wood and sheep and only joins a road at the player's own buil
   state = toggleRoad(state, edges, path[2], 0, { ship: true });
   state = toggleRoad(state, edges, path[3], 0, { ship: true });
   assert.deepEqual(roadLengths(state, edges), [2, 0]);
-  assert.equal(buildSpending(state)[0], 8);
+  assert.equal(costsPaid(state)[0], 8);
 
   // roads continue from road ends and ships from ship ends, never across
   assert.equal(networkCorners(state, edges, 0, false).has(corners[4]), false);
@@ -514,7 +514,7 @@ test("Road Building makes the next two roads free, for that player and that turn
   state = toggleRoad(toggleRoad(state, edges, path[0], 0), edges, path[1], 0);
   assert.equal(state.freeRoads, null);
   state = toggleRoad(state, edges, path[2], 0);
-  assert.deepEqual(buildSpending(state), [2, 2]);
+  assert.deepEqual(costsPaid(state), [2, 2]);
 
   const unused = playRoadBuilding(nextTurn(state), 1);
   assert.deepEqual(unused.freeRoads, { player: 1, left: 2 });
@@ -538,7 +538,7 @@ test("a Cities & Knights knight holds its corner, costs cards and breaks a road"
   assert.deepEqual(state.knights[corners[2]], { player: 1, level: 2, active: true });
   assert.deepEqual(knightStrength(state), { active: [0, 2], total: [0, 2] });
   // recruit and promote are two cards each, activating is one; player 0 paid for five roads
-  assert.deepEqual(buildSpending(state), [10, 5]);
+  assert.deepEqual(costsPaid(state), [10, 5]);
 
   state = moveKnight(state, edges, corners[2], corners[5]);
   assert.equal(state.knights[corners[2]], undefined);
@@ -586,10 +586,10 @@ test("development cards and walls are charged to whoever bought them", () => {
   state = buyDevelopmentCard(state, 1);
   state = changeWalls(changeWalls(state, 0, 1), 0, 1);
   // a card is three cards, a wall two bricks
-  assert.deepEqual(buildSpending(state), [4, 3]);
+  assert.deepEqual(costsPaid(state), [4, 3]);
 
   state = changeWalls(state, 0, -1);
-  assert.deepEqual(buildSpending(state), [2, 3]);
+  assert.deepEqual(costsPaid(state), [2, 3]);
   assert.equal(changeWalls(changeWalls(changeWalls(state, 0, 1), 0, 1), 0, 1).walls[0], 3);
 });
 
@@ -601,7 +601,7 @@ test("the first to the fourth level holds a metropolis until someone reaches the
   let state = build({ ...startedGame(), setup: null, citiesKnights: true }, 0, 3);
   assert.equal(state.metropolis.trade, undefined);
   // levels one to three cost 1 + 2 + 3 cloth
-  assert.deepEqual(buildSpending(state), [6, 0]);
+  assert.deepEqual(costsPaid(state), [6, 0]);
 
   state = build(state, 0, 1);
   assert.equal(state.metropolis.trade, 0);
@@ -683,10 +683,16 @@ test("a finished game is summed up best player first", () => {
   state = cycleBuilding(state, edges, cornerOf(hexIndex("forest")).id, 1);
   state = recordRoll(state, vertices, hexes[hexIndex("forest")].number as number);
   const record = summarize(state, "Catan (3-4 players)", 99);
-  assert.deepEqual(record.players.map((player) => [player.name, player.points, player.cards]), [
-    ["Ben", 1, 1],
-    ["Asha", 0, 0],
+  assert.deepEqual(record.players.map((player) => [player.name, player.points, player.awards]), [
+    ["Ben", 1, []],
+    ["Asha", 0, []],
   ]);
+  // a roll's payout is all that is said about cards: nobody's hand is counted
+  assert.deepEqual(Object.keys(state.rolls[0]).sort(), ["at", "event", "payouts", "total"]);
+  assert.deepEqual(Object.keys(record.players[0]).sort(), ["awards", "color", "name", "points", "seat"]);
+  // the two awards are worth four points, which puts Asha first with both against her name
+  const [holder] = summarize({ ...state, longestRoad: 0, largestArmy: 0 }, "", 99).players;
+  assert.deepEqual([holder.name, holder.points, holder.awards], ["Asha", 4, ["longestRoad", "largestArmy"]]);
   assert.equal(record.rolls.reduce((sum, count) => sum + count, 0), 1);
   assert.equal(record.turns, 1);
 });
@@ -713,8 +719,8 @@ test("the sample game is a real game, ready for its next roll", () => {
 
   // everyone has their two opening buildings at least, and the dice have paid somebody
   assert.ok(playerPoints(sample).every((points) => points >= 2));
-  assert.ok(productionTotals(sample).received.reduce((sum, cards) => sum + cards, 0) > 5);
-  assert.ok(buildSpending(sample).some((spent) => spent > 0));
+  assert.ok(sample.rolls.some((roll) => roll.payouts.some((payout) => Object.keys(payout).length > 0)));
+  assert.ok(costsPaid(sample).some((paid) => paid > 0));
   assert.ok(parseGame(JSON.parse(JSON.stringify(sample))));
 });
 

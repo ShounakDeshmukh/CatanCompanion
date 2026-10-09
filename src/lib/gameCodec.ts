@@ -176,12 +176,9 @@ export function parseGame(raw: unknown): GameState | undefined {
       return undefined;
     }
     const payouts = parseAll(item.payouts, parsePayout);
-    const expected = parseAll(item.expected, (amount) =>
-      typeof amount === "number" && Number.isFinite(amount) ? amount : undefined
-    );
-    if (!payouts || !expected || typeof item.at !== "number") return undefined;
+    if (!payouts || typeof item.at !== "number") return undefined;
     if (item.event !== undefined && !isOneOf(EVENTS, item.event)) return undefined;
-    return { total: item.total, event: item.event, payouts, expected, at: item.at };
+    return { total: item.total, event: item.event, payouts, at: item.at };
   });
 
   const parsedLedger = parseAll<LedgerEntry>(raw.ledger ?? [], (item) => {
