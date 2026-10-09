@@ -35,7 +35,7 @@ export function recruitKnight(
 ): GameState {
   if (occupant(state, corner) !== undefined || !knightAvailable(state, player, 1)) return state;
   const knights = { ...state.knights, [corner]: { player, level: 1, active: false } as Knight };
-  const recruited = logged({ ...state, knights }, { kind: "troop", player, action: "recruit" });
+  const recruited = logged({ ...state, knights }, { kind: "troop", player, action: "recruit", site: corner });
   // a knight breaks an opponent's road just as a settlement does
   return withLongestRoad(recruited, edges);
 }
@@ -54,6 +54,7 @@ export function promoteKnight(state: GameState, corner: string): GameState {
     kind: "troop",
     player: knight.player,
     action: "promote",
+    site: corner,
   });
 }
 
@@ -64,15 +65,20 @@ export function activateKnight(state: GameState, corner: string): GameState {
     kind: "troop",
     player: knight.player,
     action: "activate",
+    site: corner,
   });
 }
 
-/** Puts a knight back to sleep. Chasing the robber is the one use that gets its own line. */
+/** Puts a knight back to sleep, which is also what chasing the robber off costs it. */
 export function standDownKnight(state: GameState, corner: string, chasing = false): GameState {
   const knight = state.knights[corner];
   if (!knight || !knight.active) return state;
-  const asleep = withKnight(state, corner, { ...knight, active: false });
-  return chasing ? logged(asleep, { kind: "troop", player: knight.player, action: "chase" }) : asleep;
+  return logged(withKnight(state, corner, { ...knight, active: false }), {
+    kind: "troop",
+    player: knight.player,
+    action: chasing ? "chase" : "rest",
+    site: corner,
+  });
 }
 
 function withoutKnight(state: GameState, corner: string): GameState {
@@ -86,13 +92,21 @@ export function moveKnight(state: GameState, edges: Edge[], from: string, to: st
   if (!knight || occupant(state, to) !== undefined) return state;
   const moved = withKnight(withoutKnight(state, from), to, { ...knight, active: false });
   return withLongestRoad(
-    logged(moved, { kind: "troop", player: knight.player, action: "move" }),
+    logged(moved, { kind: "troop", player: knight.player, action: "move", site: to, from }),
     edges
   );
 }
 
 export function removeKnight(state: GameState, edges: Edge[], corner: string): GameState {
-  return withLongestRoad(withoutKnight(state, corner), edges);
+  const knight = state.knights[corner];
+  if (!knight) return state;
+  const removed = logged(withoutKnight(state, corner), {
+    kind: "troop",
+    player: knight.player,
+    action: "remove",
+    site: corner,
+  });
+  return withLongestRoad(removed, edges);
 }
 
 export interface KnightStrength {
@@ -186,5 +200,5 @@ export function pillageCity(state: GameState, corner: string): GameState {
   const building = state.buildings[corner];
   if (building?.kind !== "city" || !pendingPillage(state).includes(building.player)) return state;
   const buildings = { ...state.buildings, [corner]: { ...building, kind: "settlement" as const } };
-  return logged({ ...state, buildings }, { kind: "pillage", player: building.player });
+  return logged({ ...state, buildings }, { kind: "pillage", player: building.player, site: corner });
 }

@@ -607,23 +607,21 @@
   -webkit-overflow-scrolling: touch;
 }
 
-.play-record {
-  border-top: 1px solid var(--color-border);
-  padding: 0.6rem 0;
-}
-
 .play-empty .play-chips {
   gap: 0.6rem;
   margin-bottom: 0.8rem;
 }
 
-.play-record summary {
-  cursor: pointer;
-  font-weight: 600;
+/* the result card, shown as it will be shared */
+.play-card {
+  display: block;
+  width: 100%;
+  border-radius: 12px;
 }
 
-.play-record summary .play-muted {
-  margin-left: 0.5rem;
+.play-empty .btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .play-end {

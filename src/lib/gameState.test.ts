@@ -14,7 +14,9 @@ import {
   pillageCity,
   promoteKnight,
   recruitKnight,
+  removeKnight,
   resolveBarbarians,
+  standDownKnight,
   KNIGHTS_PER_RANK,
   knightAvailable,
 } from "./cityKnights";
@@ -29,6 +31,7 @@ import {
   barbarianPosition,
   barbariansAttacked,
   buildSpending,
+  changeExtraPoints,
   currentPlayer,
   cycleBuilding,
   endTurn,
@@ -64,6 +67,7 @@ import {
 } from "./expansionTracking";
 import { parseGame } from "./gameCodec";
 import { summarize } from "./gameHistory";
+import { replay } from "./replay";
 import { sampleGame } from "./sampleGame";
 import { hexPips } from "./shuffle";
 import { boardGeometry } from "./vertices";
@@ -708,6 +712,103 @@ test("the sample game is a real game, ready for its next roll", () => {
   assert.ok(productionTotals(sample).received.reduce((sum, cards) => sum + cards, 0) > 5);
   assert.ok(buildSpending(sample).some((spent) => spent > 0));
   assert.ok(parseGame(JSON.parse(JSON.stringify(sample))));
+});
+
+test("a finished game plays back from the empty board to the board as it ended", () => {
+  const sample = moveRobber(sampleGame(1_000_000_000), 0);
+  const views = replay(sample).map((moment) => moment.state);
+  const changes = sample.ledger.filter((entry) => ["build", "robber", "roll"].includes(entry.kind));
+  assert.equal(views.length, changes.length + 1);
+  assert.deepEqual([views[0].buildings, views[0].roads], [{}, {}]);
+  assert.equal(sample.hexes[views[0].robber!].type, "desert");
+  assert.equal(views.at(-1), sample);
+
+  // one thing changes at a time, so the first step is the first settlement alone
+  assert.deepEqual(Object.keys(views[1].buildings), [sample.setup![0]]);
+  assert.deepEqual(Object.keys(views[2].roads), [sample.setup![1]]);
+  // a settlement shows as one until the turn it became a city
+  const city = Object.keys(sample.buildings).find((corner) => sample.buildings[corner].kind === "city")!;
+  assert.equal(views[sample.setup!.length].buildings[city].kind, "settlement");
+
+  // a piece taken back was a correction, so the film never shows it
+  const road = Object.keys(sample.roads)[0];
+  const corrected = toggleRoad(sample, edges, road, sample.roads[road]);
+  assert.ok(replay(corrected).every((moment) => !(road in moment.state.roads)));
+
+  // the score runs alongside: nothing at first, then a point for each opening settlement
+  assert.deepEqual(playerPoints(views[0]), [0, 0, 0]);
+  assert.deepEqual(playerPoints(views[sample.setup!.length]), [2, 2, 2]);
+  assert.equal(views[sample.setup!.length].rolls.length, 0);
+  assert.equal(views.at(-2)!.rolls.length, sample.rolls.length);
+});
+
+test("the replay follows knights to their corners and a pillaged city back to a settlement", () => {
+  const [home, away, city] = vertices.filter((v) => v.hexes.some((i) => hexes[i].type !== "sea")).map((v) => v.id);
+  let state: GameState = { ...startedGame(), setup: null, citiesKnights: true };
+  state = activateKnight(promoteKnight(recruitKnight(state, edges, home, 0), home), home);
+  state = moveKnight(state, edges, home, away);
+  const knights = replay(state).map((moment) => moment.state.knights);
+  assert.deepEqual(knights.slice(0, 4), [
+    {},
+    { [home]: { player: 0, level: 1, active: false } },
+    { [home]: { player: 0, level: 2, active: false } },
+    { [home]: { player: 0, level: 2, active: true } },
+  ]);
+  assert.deepEqual(knights[4], { [away]: { player: 0, level: 2, active: false } });
+  assert.deepEqual(replay(state).map((moment) => moment.changed), [undefined, home, home, home, undefined]);
+
+  // standing a knight down and taking it off the board are steps of their own
+  const gone = removeKnight(standDownKnight(activateKnight(state, away), away), edges, away);
+  assert.deepEqual(gone.ledger.slice(-2).map((entry) => entry.kind === "troop" && entry.action), ["rest", "remove"]);
+  assert.deepEqual(
+    replay(gone).slice(-4).map((moment) => moment.state.knights[away]?.active),
+    [false, true, false, undefined]
+  );
+  assert.equal(removeKnight(gone, edges, away), gone);
+
+  // a game saved before corners were recorded still loads, and simply skips those steps
+  const old = { ...state, ledger: state.ledger.map(({ kind, turn, player, action }: any) => ({ kind, turn, player, action })) };
+  assert.equal(replay(parseGame(JSON.parse(JSON.stringify(old)))!).length, 1);
+  assert.deepEqual(parseGame(JSON.parse(JSON.stringify(state)))!.ledger, state.ledger);
+
+  state = cycleBuilding(cycleBuilding({ ...state, knights: {} }, edges, city, 1), edges, city, 1);
+  state = pillageCity(resolveBarbarians(state), city);
+  assert.deepEqual(replay(state).slice(-3).map((moment) => moment.state.buildings[city]?.kind), ["settlement", "city", "settlement"]);
+});
+
+test("a point given by hand is written down, and taking it straight back strikes the line", () => {
+  let state: GameState = { ...startedGame(), setup: null };
+  const given = changeExtraPoints(state, 1, 1);
+  assert.deepEqual([playerPoints(given)[1], given.ledger.length], [1, 1]);
+  const takenBack = changeExtraPoints(given, 1, -1);
+  assert.deepEqual([playerPoints(takenBack)[1], takenBack.ledger.length], [0, 0]);
+  // a point lost with none given first is a line of its own, and giving it back strikes that
+  const lost = changeExtraPoints(state, 1, -1);
+  assert.deepEqual(lost.ledger.at(-1), { kind: "points", turn: 0, player: 1, change: -1 });
+  assert.equal(changeExtraPoints(lost, 1, 1).ledger.length, 0);
+  // somebody else's point is no correction of this one
+  assert.equal(changeExtraPoints(given, 0, -1).ledger.length, 2);
+  assert.ok(parseGame(JSON.parse(JSON.stringify(given))));
+
+  // the replay carries the point from the step it was given at, not just at the end
+  const [near, far] = [vertices[0].id, vertices.at(-1)!.id];
+  state = changeExtraPoints(cycleBuilding(state, edges, near, 0), 1, 1);
+  state = cycleBuilding(cycleBuilding(state, edges, near, 0), edges, far, 0);
+  assert.deepEqual(
+    replay(state).map((moment) => playerPoints(moment.state)),
+    [[0, 0], [1, 0], [2, 1], [3, 1]]
+  );
+});
+
+test("a fog hex stays fog in the replay until it is explored", () => {
+  const fog = hexes.findIndex((hex) => hex.type === "forest");
+  const fogged: GameState = {
+    ...startedGame(),
+    setup: null,
+    hexes: hexes.map((hex, index) => (index === fog ? { type: "fog" } : hex)),
+  };
+  const explored = revealHex(cycleBuilding(fogged, edges, vertices[0].id, 0), fog, { type: "gold", number: 12 });
+  assert.deepEqual(replay(explored).map((moment) => moment.state.hexes[fog].type), ["fog", "fog", "gold"]);
 });
 
 test("a player cannot put down more pieces than their box holds", () => {

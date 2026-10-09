@@ -85,6 +85,8 @@ export function historyHtml(state: GameState, vertices: Vertex[]): string {
         return `${who} raises ${TRACK_LABEL[entry.track]} to level ${entry.level}`;
       case "pirate":
         return `${who} moves the pirate`;
+      case "points":
+        return `${who} ${entry.change === 1 ? "gains" : "gives up"} a victory point`;
     }
   };
 

@@ -1,135 +1,154 @@
 import type { GameRecord } from "../../lib/gameHistory";
+import type { GameState } from "../../lib/gameState";
+import type { BoardView } from "../../lib/replay";
 import { SITE_URL } from "../../lib/site";
+import { BODY, HEADING, INK, PIECE_COLOR, type BoardPainter } from "./boardCanvas";
 
-const SIZE = 1080;
-const INK = "#2b1c10";
+/** Four by five, the tallest picture feeds and chat apps show whole. */
+const WIDTH = 1080;
+const HEIGHT = 1350;
 const MUTED = "#6b5738";
-const HEADING = '"Cinzel", Georgia, serif';
-const BODY = '"Crimson Pro", Georgia, serif';
 
-/** The colours of the pieces, as play.css has them; a canvas cannot read the stylesheet. */
-const PIECE_COLOR: Record<GameRecord["players"][number]["color"], string> = {
-  red: "#c8322b",
-  blue: "#2f6fc1",
-  white: "#f2efe6",
-  orange: "#e08a1e",
-  green: "#3d8b40",
-  brown: "#7a4a2a",
-  black: "#26221f",
-  gray: "#8b8f94",
-  purple: "#7b4bb0",
-  pink: "#e27aa6",
-  lime: "#a6d42a",
-};
+/** The board starts under the heading and the standings end above the closing lines. */
+const BOARD_TOP = 262;
+const STANDINGS_END = 1146;
+const ROW_STEP = 60;
+/** The most the rows may spread over, which is what six players are fitted into. */
+const ROWS_SPAN = 200;
+/** From the foot of the board to the first row: a gap, then the column headings. */
+const STANDINGS_HEAD = 88;
 
-/** Draws a finished game as a square picture, the size chat apps and feeds show whole. */
-export async function drawResultCard(record: GameRecord): Promise<HTMLCanvasElement> {
-  // text drawn before a web font has loaded falls back for good, so wait for both
-  await Promise.all([
+/** Text drawn before a web font has loaded falls back for good, so wait for both. */
+export function cardFonts(): Promise<unknown> {
+  return Promise.all([
     document.fonts.load(`700 64px ${HEADING}`),
     document.fonts.load(`400 40px ${BODY}`),
+    document.fonts.load(`700 40px ${BODY}`),
   ]);
+}
 
+/** A canvas the card fits at `scale`, set up so the card can be drawn at its full size. */
+export function cardCanvas(scale: number = 1): { canvas: HTMLCanvasElement; draw: CanvasRenderingContext2D } {
   const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = SIZE;
-  const draw = canvas.getContext("2d");
+  canvas.width = WIDTH * scale;
+  canvas.height = HEIGHT * scale;
+  // the replay reads every frame back, which this keeps off the graphics card
+  const draw = canvas.getContext("2d", { willReadFrequently: scale !== 1 });
   if (!draw) throw new Error("This browser cannot draw the result");
+  draw.scale(scale, scale);
+  return { canvas, draw };
+}
 
+/** The parts of the card that differ from one frame of the replay to the next. */
+export interface Scene {
+  headline: string;
+  view: BoardView;
+  changed?: string | number;
+  /** The standings to show, in the order the game finished in. */
+  players: GameRecord["players"];
+}
+
+/** The card as it is shared on its own: who won, the final board and the final scores. */
+export function finalScene(record: GameRecord, state: GameState): Scene {
+  const [winner] = record.players;
+  const headline = `${winner.name} ${winner.points >= record.target ? "wins" : "leads"}`;
+  return { headline, view: state, players: record.players };
+}
+
+/**
+ * Draws a finished game's card around one scene of it. The standings sit at the foot of the
+ * sheet and the board takes whatever is left above them, so a table of three gets a larger
+ * board than a table of six. A GIF has too few colours for the sheet's gradient, which comes
+ * out in bands, so `flat` gives the replay a plain sheet.
+ */
+export function drawResultCard(
+  draw: CanvasRenderingContext2D,
+  record: GameRecord,
+  paintBoard: BoardPainter,
+  scene: Scene,
+  flat: boolean = false
+): void {
   draw.fillStyle = "#3c2416";
-  draw.fillRect(0, 0, SIZE, SIZE);
-  const sheet = draw.createLinearGradient(0, 0, SIZE, SIZE);
+  draw.fillRect(0, 0, WIDTH, HEIGHT);
+  const sheet = draw.createLinearGradient(0, 0, WIDTH, HEIGHT);
   sheet.addColorStop(0, "#f6ecce");
   sheet.addColorStop(0.55, "#e2cc98");
   sheet.addColorStop(1, "#c9ab70");
-  draw.fillStyle = sheet;
+  draw.fillStyle = flat ? "#e6d3a3" : sheet;
   draw.beginPath();
-  draw.roundRect(36, 36, SIZE - 72, SIZE - 72, 28);
+  draw.roundRect(36, 36, WIDTH - 72, HEIGHT - 72, 28);
   draw.fill();
   draw.strokeStyle = "rgb(43 28 16 / 0.35)";
   draw.lineWidth = 2;
   draw.beginPath();
-  draw.roundRect(58, 58, SIZE - 116, SIZE - 116, 16);
+  draw.roundRect(58, 58, WIDTH - 116, HEIGHT - 116, 16);
   draw.stroke();
 
   const text = (value: string, x: number, y: number, font: string, color = INK, align: CanvasTextAlign = "left") => {
     draw.font = font;
     draw.fillStyle = color;
     draw.textAlign = align;
+    draw.textBaseline = "alphabetic";
     draw.fillText(value, x, y);
   };
 
-  const [winner] = record.players;
+  const { headline, players } = scene;
   const minutes = Math.max(1, Math.round((record.endedAt - record.startedAt) / 60000));
-  text("CATAN COMPANION", SIZE / 2, 140, `700 34px ${HEADING}`, MUTED, "center");
-  const verb = winner.points >= record.target ? "wins" : "leads";
-  text(`${winner.name} ${verb}`, SIZE / 2, 250, `700 92px ${HEADING}`, INK, "center");
+  text("CATAN COMPANION", WIDTH / 2, 118, `700 30px ${HEADING}`, MUTED, "center");
+  draw.font = `700 76px ${HEADING}`;
+  // a long name is set smaller rather than run off the sheet
+  const size = Math.min(76, (76 * (WIDTH - 200)) / draw.measureText(headline).width);
+  text(headline, WIDTH / 2, 196, `700 ${size}px ${HEADING}`, INK, "center");
   text(
     `${record.board} · ${new Date(record.endedAt).toLocaleDateString()}`,
-    SIZE / 2,
-    312,
-    `400 36px ${BODY}`,
+    WIDTH / 2,
+    242,
+    `400 32px ${BODY}`,
     MUTED,
     "center"
   );
 
-  const top = 400;
-  const step = Math.min(96, 480 / record.players.length);
-  text("POINTS", 760, top - 30, `700 24px ${BODY}`, MUTED, "right");
-  text("CARDS", 880, top - 30, `700 24px ${BODY}`, MUTED, "right");
-  text("LUCK", 990, top - 30, `700 24px ${BODY}`, MUTED, "right");
-  record.players.forEach((player, place) => {
-    const y = top + 44 + place * step;
+  // six players share the room four have, so their rows are set closer and smaller
+  const step = Math.min(ROW_STEP, ROWS_SPAN / (players.length - 1));
+  const fit = step / ROW_STEP;
+  const top = STANDINGS_END - (players.length - 1) * step;
+  const board = { x: 80, y: BOARD_TOP, width: WIDTH - 160, height: top - STANDINGS_HEAD - BOARD_TOP };
+  paintBoard(draw, scene.view, board, scene.changed);
+
+  text("POINTS", 760, top - 48, `700 22px ${BODY}`, MUTED, "right");
+  text("CARDS", 880, top - 48, `700 22px ${BODY}`, MUTED, "right");
+  text("LUCK", 990, top - 48, `700 22px ${BODY}`, MUTED, "right");
+  players.forEach((player, place) => {
+    const y = top + place * step;
     draw.strokeStyle = "rgb(43 28 16 / 0.15)";
+    draw.lineWidth = 2;
     draw.beginPath();
-    draw.moveTo(96, y - 56);
-    draw.lineTo(SIZE - 96, y - 56);
+    draw.moveTo(96, y - 42 * fit);
+    draw.lineTo(WIDTH - 96, y - 42 * fit);
     draw.stroke();
 
     draw.fillStyle = PIECE_COLOR[player.color];
     draw.strokeStyle = INK;
     draw.lineWidth = 3;
     draw.beginPath();
-    draw.arc(120, y - 16, 18, 0, Math.PI * 2);
+    draw.arc(120, y - 13 * fit, 15 * fit, 0, Math.PI * 2);
     draw.fill();
     draw.stroke();
 
-    text(player.name, 160, y, `600 50px ${BODY}`);
-    text(String(player.points), 760, y, `700 60px ${HEADING}`, INK, "right");
-    text(String(player.cards), 880, y, `400 44px ${BODY}`, MUTED, "right");
-    text(`${player.luck >= 0 ? "+" : ""}${player.luck.toFixed(1)}`, 990, y, `400 44px ${BODY}`, MUTED, "right");
+    text(player.name, 156, y, `600 ${42 * fit}px ${BODY}`);
+    text(String(player.points), 760, y, `700 ${46 * fit}px ${HEADING}`, INK, "right");
+    text(String(player.cards), 880, y, `400 ${38 * fit}px ${BODY}`, MUTED, "right");
+    text(`${player.luck >= 0 ? "+" : ""}${player.luck.toFixed(1)}`, 990, y, `400 ${38 * fit}px ${BODY}`, MUTED, "right");
   });
 
   const luckiest = record.players.reduce((best, player) => (player.luck > best.luck ? player : best));
   const mostRolled = record.rolls.indexOf(Math.max(...record.rolls)) + 2;
-  const lines = [`${record.turns} turns in about ${minutes} minutes, first to ${record.target}`];
+  const lines = [
+    `${record.turns} turns in about ${minutes} ${minutes === 1 ? "minute" : "minutes"}, first to ${record.target}`,
+  ];
   if (record.turns > 0) {
     lines.push(`The dice favoured ${mostRolled}, and ${luckiest.name} had the luck`);
   }
-  lines.forEach((line, index) => text(line, SIZE / 2, 900 + index * 48, `400 36px ${BODY}`, INK, "center"));
-  text(SITE_URL.replace(/^https:\/\/|\/$/g, ""), SIZE / 2, 1010, `400 28px ${BODY}`, MUTED, "center");
-
-  return canvas;
-}
-
-/** Hands the picture to the phone's share sheet where there is one, and saves it otherwise. */
-export async function shareResult(record: GameRecord): Promise<void> {
-  const canvas = await drawResultCard(record);
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-  if (!blob) return;
-  const file = new File([blob], "catan-result.png", { type: "image/png" });
-
-  if (navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: "Catan result", text: SITE_URL });
-      return;
-    } catch (error) {
-      // closing the share sheet is not a failure; anything else falls through to a download
-      if (error instanceof DOMException && error.name === "AbortError") return;
-    }
-  }
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = file.name;
-  link.click();
-  URL.revokeObjectURL(link.href);
+  lines.forEach((line, index) => text(line, WIDTH / 2, 1196 + index * 40, `400 31px ${BODY}`, INK, "center"));
+  text(SITE_URL.replace(/^https:\/\/|\/$/g, ""), WIDTH / 2, 1276, `400 25px ${BODY}`, MUTED, "center");
 }

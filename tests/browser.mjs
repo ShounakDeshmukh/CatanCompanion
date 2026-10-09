@@ -196,7 +196,7 @@ try {
   await js(`window.confirm = () => true`);
   await tap("[data-action=end]");
   await sleep(700);
-  check("ending a game records it under Past games", await js(`document.querySelectorAll(".play-record").length === 1 && localStorage.getItem("catan-comp-game") === null`));
+  check("ending a game shows its result and keeps nothing", await js(`!!document.querySelector("#play-share-picture") && localStorage.length === 0`));
 
   // the sample game, from a page with nothing saved
   await js(`localStorage.clear()`);
@@ -206,15 +206,24 @@ try {
   check("the sample game opens mid-game, ready to roll", await js(`!!document.querySelector(".play-pad") && ${game}.turn > 5 && document.querySelectorAll(".vertex--settlement, .vertex--city").length === 6`));
   await tap('[data-action=roll][data-value="8"]');
   await js(`window.confirm = () => true`);
+  // if the artwork cannot be loaded there is no result to show, and the game must survive that
+  await js(`(() => { window.alert = (said) => (window.alerted = said);
+    window.realDecode = HTMLImageElement.prototype.decode;
+    HTMLImageElement.prototype.decode = () => Promise.reject(new Error("offline")); })()`);
+  await tap("[data-action=end]");
+  await sleep(300);
+  check("a result that cannot be drawn leaves the game as it was", await js(`!!window.alerted && !!document.querySelector("[data-action=next]") && ${game}.rolls.length > 0`));
+  await js(`HTMLImageElement.prototype.decode = window.realDecode`);
+  // the picture is on show only until the replay takes its place, so note it as it is made
+  await js(`(() => { const toBlob = HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob = function (...given) { window.drawn = [this.width, this.height].join(); toBlob.apply(this, given); }; })()`);
   await tap("[data-action=end]");
   await sleep(700);
-  const picture = await js(`new Promise((resolve) => {
-    const toBlob = HTMLCanvasElement.prototype.toBlob;
-    HTMLCanvasElement.prototype.toBlob = function (callback) { resolve([this.width, this.height]); toBlob.call(this, () => {}); };
-    document.querySelector("[data-share-record]").click();
-    setTimeout(() => resolve([0, 0]), 4000);
-  })`);
-  check("a finished game can be drawn as a result picture", picture[0] === 1080 && picture[1] === 1080);
+  const card = `document.querySelector("#play-card")`;
+  check("a finished game is drawn as a result picture", (await js(`window.drawn`)) === "1080,1350");
+  for (let wait = 0; wait < 40 && (await js(`document.querySelector("#play-share-replay").disabled`)); wait++) await sleep(100);
+  const film = await js(`fetch(${card}.src).then((reply) => reply.blob()).then(async (blob) => [blob.type, new TextDecoder().decode(await blob.slice(0, 6).arrayBuffer())].join())`);
+  check("and as a replay of how its board was built", film === "image/gif,GIF89a", film);
   check("the footer links to the issue tracker", await js(`document.querySelector(".site-footer a").href.endsWith("/issues/new")`));
 
   await startGame("ck-3-4", true);

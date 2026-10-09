@@ -7,6 +7,8 @@ export interface Snapshot {
   state: GameState;
   /** The two faces behind the last total, when the app rolled it. */
   dice?: [number, number];
+  /** Sent once, as the host ends the game, so viewers get its result too. */
+  ended?: boolean;
 }
 
 export interface Host {
@@ -90,12 +92,12 @@ export async function hostRoom(
 
 function parseSnapshot(data: unknown): Snapshot | undefined {
   if (typeof data !== "object" || data === null) return undefined;
-  const { state: rawState, dice } = data as { state?: unknown; dice?: unknown };
+  const { state: rawState, dice, ended } = data as { state?: unknown; dice?: unknown; ended?: unknown };
   const state = parseGame(rawState);
   if (!state) return undefined;
   const isFace = (face: unknown) => Number.isInteger(face) && Number(face) >= 1 && Number(face) <= 6;
   const rolled = Array.isArray(dice) && dice.length === 2 && dice.every(isFace);
-  return { state, dice: rolled ? (dice as [number, number]) : undefined };
+  return { state, dice: rolled ? (dice as [number, number]) : undefined, ended: ended === true };
 }
 
 /** Follows a host's room, reconnecting for as long as the page stays open. */

@@ -44,7 +44,15 @@ const CARDS: readonly Card[] = [
 ];
 const EVENTS: readonly EventDie[] = ["ship", "yellow", "blue", "green"];
 const PIECES: readonly Piece[] = ["settlement", "city", "road", "ship"];
-const KNIGHT_ACTIONS: readonly KnightAction[] = ["recruit", "promote", "activate", "move", "chase"];
+const KNIGHT_ACTIONS: readonly KnightAction[] = [
+  "recruit",
+  "promote",
+  "activate",
+  "move",
+  "chase",
+  "rest",
+  "remove",
+];
 const KNIGHT_LEVELS: readonly Knight["level"][] = [1, 2, 3];
 const EDGE_ITEMS = ["victoryPoint", "developmentCard"] as const;
 
@@ -195,9 +203,15 @@ export function parseGame(raw: unknown): GameState | undefined {
     }
     if (!isSeat(player)) return undefined;
     if (item.kind === "troop") {
-      return isOneOf(KNIGHT_ACTIONS, item.action)
-        ? { kind: "troop", turn, player, action: item.action }
-        : undefined;
+      if (!isOneOf(KNIGHT_ACTIONS, item.action)) return undefined;
+      return {
+        kind: "troop",
+        turn,
+        player,
+        action: item.action,
+        ...(typeof item.site === "string" && { site: item.site }),
+        ...(typeof item.from === "string" && { from: item.from }),
+      };
     }
     if (!isSeat(player)) return undefined;
     if (item.kind === "improve") {
@@ -207,10 +221,17 @@ export function parseGame(raw: unknown): GameState | undefined {
     if (item.kind === "pirate") {
       return isIndex(item.hex, hexes.length) ? { kind: "pirate", turn, player, hex: item.hex } : undefined;
     }
+    if (item.kind === "points") {
+      return item.change === 1 || item.change === -1
+        ? { kind: "points", turn, player, change: item.change }
+        : undefined;
+    }
+    if (item.kind === "pillage") {
+      return { kind: "pillage", turn, player, ...(typeof item.site === "string" && { site: item.site }) };
+    }
     if (
       item.kind === "knight" ||
       item.kind === "roadBuilding" ||
-      item.kind === "pillage" ||
       item.kind === "card" ||
       item.kind === "wall"
     ) {

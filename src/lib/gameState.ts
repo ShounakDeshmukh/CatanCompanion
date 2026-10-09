@@ -60,7 +60,7 @@ export interface Knight {
   active: boolean;
 }
 
-export type KnightAction = "recruit" | "promote" | "activate" | "move" | "chase";
+export type KnightAction = "recruit" | "promote" | "activate" | "move" | "chase" | "rest" | "remove";
 
 export interface Roll {
   total: number;
@@ -85,15 +85,18 @@ export type LedgerEntry = { turn: number } & (
   | { kind: "robber"; player: number; hex: number }
   | { kind: "explore"; player: number; hex: number }
   | { kind: "award"; player: number | null; award: Award }
-  | { kind: "troop"; player: number; action: KnightAction }
+  // the knight's corner and, for a move, the one it left; games saved before the replay lack both
+  | { kind: "troop"; player: number; action: KnightAction; site?: string; from?: string }
   // the defenders if Catan held, otherwise whoever has to give up a city
   | { kind: "barbarians"; defended: boolean; players: number[] }
-  | { kind: "pillage"; player: number }
+  | { kind: "pillage"; player: number; site?: string }
   | { kind: "card"; player: number }
   | { kind: "improve"; player: number; track: Track; level: number }
   | { kind: "wall"; player: number }
   | { kind: "metropolis"; player: number | null; track: Track }
   | { kind: "pirate"; player: number; hex: number }
+  // a point the board cannot show, added or taken away by hand
+  | { kind: "points"; player: number; change: 1 | -1 }
 );
 
 /**
@@ -609,6 +612,25 @@ export function playerPoints(state: GameState): number[] {
   for (const holder of Object.values(state.metropolis)) points[holder] += 2;
   clothCollected(state).forEach((cloth, player) => (points[player] += Math.floor(cloth / 2)));
   return points;
+}
+
+/**
+ * Adds or takes away one of a player's points that the board cannot show. Taking back a point
+ * just given, or giving back one just taken, is a correction: that line leaves the history
+ * rather than a second one joining it.
+ */
+export function changeExtraPoints(state: GameState, player: number, change: 1 | -1): GameState {
+  const players = state.players.map((entry, seat) =>
+    seat === player ? { ...entry, extraPoints: entry.extraPoints + change } : entry
+  );
+  const latest = state.ledger
+    .map((entry) => entry.kind === "points" && entry.player === player)
+    .lastIndexOf(true);
+  const last = state.ledger[latest];
+  if (last?.kind === "points" && last.change !== change) {
+    return { ...state, players, ledger: state.ledger.filter((_, index) => index !== latest) };
+  }
+  return logged({ ...state, players }, { kind: "points", player, change });
 }
 
 /** Cloth tokens taken from villages, two of which are worth a point. */

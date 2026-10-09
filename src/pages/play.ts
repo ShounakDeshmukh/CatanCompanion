@@ -23,7 +23,8 @@ import {
   takings,
 } from "./play/format";
 import { cityHtml, historyHtml, scoresHtml, statsHtml } from "./play/panels";
-import { renderEmpty } from "./play/records";
+import { renderEmpty } from "./play/empty";
+import { renderResult } from "./play/result";
 import { renderSetup } from "./play/setup";
 import {
   buyDevelopmentCard,
@@ -32,7 +33,6 @@ import {
   movePirate,
   raiseImprovement,
 } from "../lib/expansionTracking";
-import { saveRecord, summarize } from "../lib/gameHistory";
 import {
   hostRoom,
   newRoomId,
@@ -70,6 +70,7 @@ import {
   barbarianPosition,
   barbariansAttacked,
   cardPlayedThisTurn,
+  changeExtraPoints,
   currentPlayer,
   cycleBuilding,
   endTurn,
@@ -172,6 +173,8 @@ function runGame(
   let host: Host | undefined;
   let viewers = 0;
   let shareError = "";
+  /** Set once the game is over and its result is on screen in place of the board. */
+  let ended = false;
 
   const layout = board.recommendedLayout;
   const { vertices, edges } = boardGeometry(board);
@@ -583,7 +586,7 @@ function runGame(
     const run = ++shareRun;
     const started = await hostRoom(
       room,
-      () => ({ state, dice }),
+      () => ({ state, dice, ended }),
       (count, error) => {
         viewers = count;
         shareError = error ?? "";
@@ -814,12 +817,7 @@ function runGame(
     },
     extra: (value) => {
       const [player, change] = value.split(":").map(Number);
-      commit({
-        ...state,
-        players: state.players.map((entry, i) =>
-          i === player ? { ...entry, extraPoints: entry.extraPoints + change } : entry
-        ),
-      });
+      commit(changeExtraPoints(state, player, change === 1 ? 1 : -1));
     },
     share: () => {
       const room = newRoomId();
@@ -840,12 +838,25 @@ function runGame(
       void renderShare();
     },
     end: () => {
-      if (!confirm("End this game? The result is kept under Past games.")) return;
-      // a game nobody rolled in is not worth remembering
-      if (state.rolls.length > 0) saveRecord(summarize(state, boardLabel));
-      host?.close();
-      clearGame();
-      window.location.reload();
+      if (!confirm("End this game? Its result can be shared from the next screen, but is not kept.")) return;
+      // a game nobody rolled in has no result worth showing
+      if (state.rolls.length === 0) {
+        host?.close();
+        clearGame();
+        window.location.reload();
+        return;
+      }
+      // The saved game goes only once its result is on screen, as the result is all that
+      // will be left of it. The room stays open while this page does, so a viewer who was
+      // away when the game ended still gets the result on coming back.
+      renderResult(root, state, board, boardLabel).then(
+        () => {
+          ended = true;
+          clearGame();
+          host?.send({ state, dice, ended });
+        },
+        () => alert("The result could not be drawn, so the game has been kept. Check the connection and try again.")
+      );
     },
   };
 
@@ -900,10 +911,16 @@ function runGame(
   if (!viewing && state.room) void startHosting(state.room);
 
   return (snapshot) => {
+    // the host goes on sending the finished game to whoever joins, and once is enough here
+    if (ended) return;
     state = snapshot.state;
     dice = snapshot.dice;
     boardStale = true;
     render();
+    if (!snapshot.ended) return;
+    ended = true;
+    // a result that cannot be drawn leaves the final board showing, which is the next best thing
+    renderResult(root, state, board, boardLabel).catch(() => undefined);
   };
 }
 
@@ -937,6 +954,9 @@ function watchGame(room: string): void {
     }
   );
 }
+
+// finished games were once kept here; nothing reads them now
+localStorage.removeItem("catan-comp-history");
 
 const watching = watchedRoom(window.location.hash);
 const game = watching ? undefined : loadGame();

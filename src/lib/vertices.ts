@@ -26,6 +26,10 @@ export interface Edge {
 export interface BoardGeometry {
   vertices: Vertex[];
   edges: Edge[];
+  /** The grid's width over its height, before a Seafarers map is turned. */
+  aspect: number;
+  /** A hex's side length, as a fraction of the grid's height. */
+  side: number;
 }
 
 /**
@@ -97,5 +101,10 @@ export function boardGeometry(board: CatanBoard): BoardGeometry {
     });
   });
 
-  return { vertices: [...vertices.values()], edges: [...edges.values()] };
+  return {
+    vertices: [...vertices.values()],
+    edges: [...edges.values()],
+    aspect: (columns * COLUMN_WIDTH) / height,
+    side: 1 / height,
+  };
 }

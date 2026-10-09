@@ -41,6 +41,8 @@ export const KNIGHT_ACTION_TEXT: Record<KnightAction, string> = {
   activate: "activates a knight",
   move: "moves a knight",
   chase: "chases the robber off with a knight",
+  rest: "stands a knight down",
+  remove: "takes a knight off the board",
 };
 
 export const AWARD_LABEL: Record<Award, string> = {
