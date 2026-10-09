@@ -27,8 +27,9 @@ collects what.
 - A turn-by-turn history with what everything cost, dice statistics, and how lucky each
   player has been.
 - Undo for any step. The game is saved on the device, so a refresh loses nothing.
-- Shows how long each player's turns take, and can nudge a turn that runs long.
-- Optional sound: dice, building, a seven, the barbarians, with a buzz on phones that can.
+- Rolls the dice for who goes first, as the rule book has it, then seats play clockwise.
+- Shows how long each player's turns take, and nudges a turn that runs long.
+- Sound for the dice, building, a seven and the barbarians, with a buzz on phones that can.
 - Other phones can watch along read-only, by scanning a code.
 - A finished game ends on a result card showing the final board, with a GIF replaying the
   game: the board being built, the dice and the scores. Both can be shared or saved;

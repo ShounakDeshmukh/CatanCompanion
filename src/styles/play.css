@@ -72,6 +72,25 @@
   margin: 2rem auto 0;
 }
 
+/* the throws that settle who goes first, one player to a line */
+.play-rolloff {
+  margin: 0 0 0.8rem;
+  padding: 0;
+  list-style: none;
+}
+
+.play-rolloff li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.play-rolloff strong {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+}
+
 .play-setup__players {
   margin-bottom: 0.75rem;
 }

@@ -11,7 +11,35 @@ import {
 import { isResourceHex } from "./shuffle";
 import type { Edge, Vertex } from "./vertices";
 
-/** The opening placements, and the fog hexes that are only dealt once explored. */
+/** Who goes first, the opening placements, and the fog hexes that are only dealt once explored. */
+
+export interface RollOff {
+  /** Each round's throws. Everyone throws in the first; after that, only those tied for the lead. */
+  rounds: { seat: number; dice: [number, number] }[][];
+  first: number;
+}
+
+/**
+ * Settles who starts the way the rule book does: everyone rolls two dice and the highest
+ * goes first, with those level on the highest total rolling again between themselves.
+ */
+export function rollForFirst(seats: number, die: () => number): RollOff {
+  const rounds: RollOff["rounds"] = [];
+  let contenders = Array.from({ length: seats }, (_, seat) => seat);
+  while (contenders.length > 1) {
+    const round = contenders.map((seat) => ({ seat, dice: [die(), die()] as [number, number] }));
+    const total = ({ dice }: (typeof round)[number]) => dice[0] + dice[1];
+    const best = Math.max(...round.map(total));
+    rounds.push(round);
+    contenders = round.filter((thrown) => total(thrown) === best).map(({ seat }) => seat);
+  }
+  return { rounds, first: contenders[0] };
+}
+
+/** The table in turn order: clockwise round it, starting from whoever goes first. */
+export function seatedFrom<T>(table: T[], first: number): T[] {
+  return [...table.slice(first), ...table.slice(0, first)];
+}
 
 /** Opening pieces come out of the box for nothing, so they are logged as free. */
 export function placeSetupPiece(

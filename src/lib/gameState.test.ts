@@ -24,6 +24,8 @@ import {
   facedownRemaining,
   placeSetupPiece,
   revealHex,
+  rollForFirst,
+  seatedFrom,
   startingCards,
 } from "./gameSetup";
 import {
@@ -813,11 +815,29 @@ test("turn pace is timed roll to roll, per player, leaving out breaks and the tu
   assert.deepEqual(turnPace(state), { players: [80_000, 180_000], overall: 105_000 });
 });
 
+test("the highest roll goes first, those level on it roll again, and play runs clockwise", () => {
+  const dice = (faces: number[]) => () => faces.shift() as number;
+  // 7, 9 and 4: the second seat wins outright
+  const outright = rollForFirst(3, dice([3, 4, 5, 4, 1, 3]));
+  assert.deepEqual([outright.first, outright.rounds.length], [1, 1]);
+  assert.deepEqual(outright.rounds[0][1], { seat: 1, dice: [5, 4] });
+
+  // 9, 5, 9 and 3: the first and third roll again, 6 against 8
+  const tied = rollForFirst(4, dice([4, 5, 2, 3, 6, 3, 1, 2, 2, 4, 5, 3]));
+  assert.equal(tied.first, 2);
+  assert.deepEqual(tied.rounds.map((round) => round.map(({ seat }) => seat)), [[0, 1, 2, 3], [0, 2]]);
+
+  assert.deepEqual(seatedFrom(["Asha", "Ben", "Chloe", "Dev"], 2), ["Chloe", "Dev", "Asha", "Ben"]);
+  assert.deepEqual(seatedFrom(["Asha", "Ben"], 0), ["Asha", "Ben"]);
+});
+
 test("stored preferences keep what is recognisable and default the rest", () => {
-  assert.deepEqual(parsePrefs(null), { sound: false, nudge: 0 });
+  // sound is on and the nudge is at two minutes until somebody says otherwise
+  assert.deepEqual(parsePrefs(null), { sound: true, nudge: 2 });
+  assert.deepEqual(parsePrefs({ sound: false, nudge: 0 }), { sound: false, nudge: 0 });
   assert.deepEqual(parsePrefs({ sound: true, nudge: 3 }), { sound: true, nudge: 3 });
-  assert.deepEqual(parsePrefs({ sound: "yes", nudge: 4, other: true }), { sound: false, nudge: 0 });
-  assert.deepEqual(parsePrefs("nonsense"), { sound: false, nudge: 0 });
+  assert.deepEqual(parsePrefs({ sound: "yes", nudge: 4, other: true }), { sound: true, nudge: 2 });
+  assert.deepEqual(parsePrefs("nonsense"), { sound: true, nudge: 2 });
 });
 
 test("a fog hex stays fog in the replay until it is explored", () => {

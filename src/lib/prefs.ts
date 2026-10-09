@@ -9,7 +9,7 @@ export interface Prefs {
 /** The choices the nudge steps through, in minutes. */
 export const NUDGE_STEPS = [0, 1, 2, 3, 5];
 
-const DEFAULTS: Prefs = { sound: false, nudge: 0 };
+const DEFAULTS: Prefs = { sound: true, nudge: 2 };
 const STORAGE_KEY = "catan-comp-prefs";
 
 /** Keeps what is recognisable of some stored preferences and defaults the rest. */
@@ -17,7 +17,7 @@ export function parsePrefs(raw: unknown): Prefs {
   if (typeof raw !== "object" || raw === null) return DEFAULTS;
   const { sound, nudge } = raw as Record<string, unknown>;
   return {
-    sound: sound === true,
+    sound: typeof sound === "boolean" ? sound : DEFAULTS.sound,
     nudge: NUDGE_STEPS.includes(nudge as number) ? (nudge as number) : DEFAULTS.nudge,
   };
 }

@@ -166,7 +166,7 @@ try {
     await js(`localStorage.clear()`);
     await tap("#start-game");
     await sleep(900);
-    await js(`(() => { document.querySelector("input[name=shuffle]").checked = false; document.querySelector("input[name=citiesKnights]").checked = ${citiesKnights}; document.querySelector("#play-setup button[type=submit]").click(); })()`);
+    await js(`(() => { document.querySelector("input[name=rollOff]").checked = false; document.querySelector("input[name=citiesKnights]").checked = ${citiesKnights}; document.querySelector("#play-setup button[type=submit]").click(); })()`);
     await sleep(200);
     // the opening placements: always take an offered corner, then an offered side
     await js(`(() => { for (let guard = 0; guard < 80 && document.querySelector("#play-turn h2").innerText.includes("places"); guard++) {
@@ -197,7 +197,8 @@ try {
   await js(`window.confirm = () => true`);
   await tap("[data-action=end]");
   await sleep(700);
-  check("ending a game shows its result and keeps nothing", await js(`!!document.querySelector("#play-share-picture") && localStorage.length === 0`));
+  // only how the page behaves is left behind, never anything about the game
+  check("ending a game shows its result and keeps nothing", await js(`!!document.querySelector("#play-share-picture") && Object.keys(localStorage).every((key) => key === "catan-comp-prefs" || key === "catan-comp-theme")`));
 
   // the sample game, from a page with nothing saved
   await js(`localStorage.clear()`);
@@ -211,11 +212,13 @@ try {
   await js(`document.querySelector(".edge:not(.edge--road)").click()`);
   check("only the piece just placed drops in", await js(`document.querySelectorAll(".is-new").length === 1 && document.querySelector(".is-new").classList.contains("edge--road")`));
   check("the dice table shows how long each player's turns take", await js(`[...document.querySelectorAll("#play-stats tbody td:last-child")].every((cell) => cell.innerText === "1:30") && document.querySelector("#play-stats h2").innerText.toLowerCase().includes("1:30 a turn")`));
-  await tap("[data-action=nudge]");
-  await js(`(() => { const game = JSON.parse(localStorage.getItem("catan-comp-game")); game.turnStartedAt -= 61000; localStorage.setItem("catan-comp-game", JSON.stringify(game)); })()`);
+  await js(`(() => { const game = JSON.parse(localStorage.getItem("catan-comp-game")); game.turnStartedAt -= 121000; localStorage.setItem("catan-comp-game", JSON.stringify(game)); })()`);
   await open("play.html");
   await sleep(1200);
-  check("a turn past the nudge marks its clock, and the choice survives a reload", await js(`document.querySelector("#play-timer").classList.contains("is-late") && document.querySelector("[data-action=nudge]").innerText === "Nudge at 1 min"`));
+  check("a turn two minutes old is nudged without anyone asking", await js(`document.querySelector("#play-timer").classList.contains("is-late") && document.querySelector("[data-action=nudge]").innerText === "Nudge at 2 min"`));
+  await tap("[data-action=nudge]");
+  await open("play.html");
+  check("a change to the nudge survives a reload", await js(`document.querySelector("[data-action=nudge]").innerText === "Nudge at 3 min"`));
   // sound is made on the spot, so count what a cue asks the browser to play
   await js(`(() => { window.played = { notes: 0, rattles: 0 };
     const note = AudioContext.prototype.createOscillator, rattle = AudioContext.prototype.createBufferSource;
@@ -223,12 +226,14 @@ try {
     AudioContext.prototype.createBufferSource = function () { window.played.rattles++; return rattle.call(this); }; })()`);
   await tap("[data-action=next]");
   await tap('[data-action=roll][data-value="5"]');
-  check("the game is silent until sound is switched on", await js(`window.played.notes + window.played.rattles === 0`));
-  await tap("[data-action=sound]");
+  check("sound is on from the start, and a roll rattles the dice", await js(`window.played.notes === 0 && window.played.rattles === 6 && document.querySelector("[data-action=sound]").innerText === "Sound on"`), JSON.stringify(await js(`window.played`)));
   await tap("[data-action=next]");
   await tap('[data-action=roll][data-value="7"]');
-  // switching sound on knocks once, which is one note and one rattle of those counted
-  check("with sound on, a seven rattles the dice and plays its two notes", await js(`window.played.notes === 3 && window.played.rattles === 4 && document.querySelector("[data-action=sound]").innerText === "Sound on"`), JSON.stringify(await js(`window.played`)));
+  check("a seven rattles them again and plays its two notes", await js(`window.played.notes === 2 && window.played.rattles === 9`), JSON.stringify(await js(`window.played`)));
+  await tap("[data-action=sound]");
+  await tap("[data-action=next]");
+  await tap('[data-action=roll][data-value="5"]');
+  check("switched off, the game is silent", await js(`window.played.notes === 2 && window.played.rattles === 9 && document.querySelector("[data-action=sound]").innerText === "Sound off"`), JSON.stringify(await js(`window.played`)));
   await js(`window.confirm = () => true`);
   // if the card cannot be drawn there is no result to show, and the game must survive that
   await js(`(() => { window.alert = (said) => (window.alerted = said);
@@ -269,6 +274,12 @@ try {
   await sleep(900);
   await tap("#play-setup button[type=submit]");
   await sleep(200);
+  const rollOff = await js(`(() => { const throws = [...document.querySelector(".play-rolloff").children].map((line) => ({ dice: line.querySelectorAll(".die").length, pips: line.querySelectorAll("[data-pip]").length, total: Number(line.querySelector("strong").innerText) }));
+    return { throws, first: document.querySelector(".play-setup p strong").innerText.replace(" goes first.", ""), seated: ${game}.players.length }; })()`);
+  check("everyone rolls two dice for who goes first, before the game is seated", rollOff.seated === 0 && rollOff.throws.length >= 3 && rollOff.throws.every((thrown) => thrown.dice === 2 && thrown.pips === thrown.total), JSON.stringify(rollOff));
+  await tap("#play-begin");
+  await sleep(200);
+  check("the winner of the roll is first in turn order", await js(`${game}.players[0].name`) === rollOff.first && (await js(`document.querySelector("#play-turn h2").innerText`)).toLowerCase().startsWith(rollOff.first.toLowerCase()));
   const short = await js(`(() => {
     const markers = [...document.querySelectorAll(".vertex--open")].map((marker) => marker.getBoundingClientRect())
       .map((box) => [box.x + box.width / 2, box.y + box.height / 2]);
