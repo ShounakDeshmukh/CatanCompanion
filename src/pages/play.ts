@@ -9,6 +9,7 @@ import { buildBoard } from "../lib/boardFactory";
 import { HEX_LABEL, renderHexBoard } from "../lib/hexBoard";
 import { boardGeometry, type Edge } from "../lib/vertices";
 import { clearGame, loadGame, loadUndo, saveGame, saveUndo } from "../lib/gameCodec";
+import { NUDGE_STEPS, loadPrefs, savePrefs } from "../lib/prefs";
 import {
   EVENT_LABEL,
   KNIGHT_RANK,
@@ -189,6 +190,7 @@ function runGame(
   let shareError = "";
   /** Set once the game is over and its result is on screen in place of the board. */
   let ended = false;
+  let prefs = loadPrefs();
 
   const layout = board.recommendedLayout;
   const { vertices, edges } = boardGeometry(board);
@@ -439,6 +441,10 @@ function runGame(
       <div class="play-chips">
         ${state.citiesKnights ? "" : `<button class="play-chip" data-action="buy-card">Buy development card</button>`}
         <button class="play-chip" data-action="zoom">Zoom ${ZOOM_STEPS[zoom] === 1 ? "in" : `${ZOOM_STEPS[zoom]}x`}</button>
+        <button class="play-chip" data-action="nudge" aria-pressed="${prefs.nudge > 0}"
+          title="Marks the turn clock once a turn has run this long">${
+            prefs.nudge > 0 ? `Nudge at ${prefs.nudge} min` : "Nudge off"
+          }</button>
       </div>
       <p class="play-muted">${movingKnight ? "Tap the corner the knight moves to." : MODE_HINT[mode]}</p>
       <p class="play-muted play-supply">${supplyHtml()}</p>`;
@@ -813,6 +819,12 @@ function runGame(
       const [seat, change] = value.split(":").map(Number);
       commit(changeWalls(state, seat, change === 1 ? 1 : -1));
     },
+    nudge: () => {
+      const step = NUDGE_STEPS.indexOf(prefs.nudge);
+      prefs = { ...prefs, nudge: NUDGE_STEPS[(step + 1) % NUDGE_STEPS.length] };
+      savePrefs(prefs);
+      render();
+    },
     zoom: () => {
       // keep whatever is in the middle of the view in the middle after the board changes size
       const centre = (boardScrollEl.scrollLeft + boardScrollEl.clientWidth / 2) / boardScrollEl.scrollWidth;
@@ -935,7 +947,10 @@ function runGame(
 
   setInterval(() => {
     const timer = document.getElementById("play-timer");
-    if (timer) timer.textContent = elapsed(state.turnStartedAt);
+    if (!timer) return;
+    timer.textContent = elapsed(state.turnStartedAt);
+    const late = !viewing && prefs.nudge > 0 && Date.now() - state.turnStartedAt >= prefs.nudge * 60_000;
+    timer.classList.toggle("is-late", late);
   }, 1000);
 
   keepScreenAwake();

@@ -14,6 +14,7 @@ import {
   type GameState,
   type LedgerEntry,
 } from "../../lib/gameState";
+import { turnPace } from "../../lib/pace";
 import type { Edge, Vertex } from "../../lib/vertices";
 import {
   AWARD_LABEL,
@@ -21,6 +22,7 @@ import {
   TOTALS,
   TRACK_LABEL,
   barbarianOutcome,
+  clock,
   elapsed,
   escapeHtml,
   payoutText,
@@ -226,9 +228,13 @@ export function statsHtml(state: GameState): string {
   const tallest = Math.max(1, ...counts, ...expected);
   const { received, expected: due } = productionTotals(state);
   const spent = buildSpending(state);
+  const pace = turnPace(state);
+  const turnTime = (time: number | null) => (time === null ? "-" : clock(time));
 
   return `
-    <h2>Dice <span class="play-muted">${rolls} rolls · ${elapsed(state.startedAt)} played</span></h2>
+    <h2>Dice <span class="play-muted">${rolls} rolls · ${elapsed(state.startedAt)} played${
+      pace.overall === null ? "" : ` · ${clock(pace.overall)} a turn`
+    }</span></h2>
     <div class="histogram" role="img" aria-label="How often each total has come up">
       ${TOTALS.map(
         (total, i) => `
@@ -245,7 +251,7 @@ export function statsHtml(state: GameState): string {
     <p class="play-muted">Bars are rolls so far; the line is what even dice would give.</p>
     <div class="play-table-wrap">
       <table class="play-table">
-        <thead><tr><th>Player</th><th>Cards</th><th>Expected</th><th>Luck</th><th>Spent</th></tr></thead>
+        <thead><tr><th>Player</th><th>Cards</th><th>Expected</th><th>Luck</th><th>Spent</th><th>Turn</th></tr></thead>
         <tbody>
           ${state.players
             .map((player, i) => {
@@ -257,6 +263,7 @@ export function statsHtml(state: GameState): string {
               <td>${due[i].toFixed(1)}</td>
               <td class="play-table__total">${luck >= 0 ? "+" : ""}${luck.toFixed(1)}</td>
               <td>${spent[i]}</td>
+              <td>${turnTime(pace.players[i])}</td>
             </tr>`;
             })
             .join("")}

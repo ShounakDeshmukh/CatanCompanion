@@ -67,6 +67,8 @@ import {
 } from "./expansionTracking";
 import { parseGame } from "./gameCodec";
 import { summarize } from "./gameHistory";
+import { turnPace } from "./pace";
+import { parsePrefs } from "./prefs";
 import { replay } from "./replay";
 import { sampleGame } from "./sampleGame";
 import { hexPips } from "./shuffle";
@@ -798,6 +800,24 @@ test("a point given by hand is written down, and taking it straight back strikes
     replay(state).map((moment) => playerPoints(moment.state)),
     [[0, 0], [1, 0], [2, 1], [3, 1]]
   );
+});
+
+test("turn pace is timed roll to roll, per player, leaving out breaks and the turn in play", () => {
+  let state = startedGame();
+  assert.deepEqual(turnPace(state), { players: [null, null], overall: null });
+  // Asha takes one minute, Ben three, Asha two; Ben's next turn is an hour's break, which
+  // is left out; Asha takes one more minute, and Ben's turn after that is still in play
+  [0, 60_000, 240_000, 360_000, 3_960_000, 4_020_000].forEach((at) => {
+    state = endTurn(recordRoll(state, vertices, 5, undefined, at), at);
+  });
+  assert.deepEqual(turnPace(state), { players: [80_000, 180_000], overall: 105_000 });
+});
+
+test("stored preferences keep what is recognisable and default the rest", () => {
+  assert.deepEqual(parsePrefs(null), { nudge: 0 });
+  assert.deepEqual(parsePrefs({ nudge: 3 }), { nudge: 3 });
+  assert.deepEqual(parsePrefs({ nudge: 4, other: true }), { nudge: 0 });
+  assert.deepEqual(parsePrefs("nonsense"), { nudge: 0 });
 });
 
 test("a fog hex stays fog in the replay until it is explored", () => {

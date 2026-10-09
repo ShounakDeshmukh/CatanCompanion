@@ -101,10 +101,13 @@ export function payoutText(payout: Payout): string {
     .join(", ");
 }
 
-export function elapsed(since: number): string {
-  const seconds = Math.max(0, Math.floor((Date.now() - since) / 1000));
+/** A length of time as minutes and seconds. */
+export function clock(milliseconds: number): string {
+  const seconds = Math.max(0, Math.floor(milliseconds / 1000));
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
+
+export const elapsed = (since: number): string => clock(Date.now() - since);
 
 export const takings = (state: GameState, payouts: Payout[], verb: string): string[] =>
   payouts.flatMap((payout, i) =>

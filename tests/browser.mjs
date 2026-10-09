@@ -210,6 +210,12 @@ try {
   await tap('[data-action=mode][data-value=road]');
   await js(`document.querySelector(".edge:not(.edge--road)").click()`);
   check("only the piece just placed drops in", await js(`document.querySelectorAll(".is-new").length === 1 && document.querySelector(".is-new").classList.contains("edge--road")`));
+  check("the dice table shows how long each player's turns take", await js(`[...document.querySelectorAll("#play-stats tbody td:last-child")].every((cell) => cell.innerText === "1:30") && document.querySelector("#play-stats h2").innerText.toLowerCase().includes("1:30 a turn")`));
+  await tap("[data-action=nudge]");
+  await js(`(() => { const game = JSON.parse(localStorage.getItem("catan-comp-game")); game.turnStartedAt -= 61000; localStorage.setItem("catan-comp-game", JSON.stringify(game)); })()`);
+  await open("play.html");
+  await sleep(1200);
+  check("a turn past the nudge marks its clock, and the choice survives a reload", await js(`document.querySelector("#play-timer").classList.contains("is-late") && document.querySelector("[data-action=nudge]").innerText === "Nudge at 1 min"`));
   await js(`window.confirm = () => true`);
   // if the card cannot be drawn there is no result to show, and the game must survive that
   await js(`(() => { window.alert = (said) => (window.alerted = said);

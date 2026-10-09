@@ -179,6 +179,12 @@
   font-size: 1.4rem;
 }
 
+/* a turn that has run past the nudge the table chose */
+#play-timer.is-late {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
 /* A die the app rolled. It is a physical thing, so it keeps its parchment in either theme. */
 .die {
   display: inline-grid;
