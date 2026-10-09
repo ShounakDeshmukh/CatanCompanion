@@ -1037,15 +1037,20 @@ function watchGame(room: string): void {
 // finished games were once kept here; nothing reads them now
 localStorage.removeItem("catan-comp-history");
 
-const watching = watchedRoom(window.location.hash);
-const game = watching ? undefined : loadGame();
-const entry = game && getBoardEntry(game.boardId);
-if (watching) {
-  watchGame(watching);
-} else if (!game || !entry) {
-  renderEmpty(root);
-} else {
+/**
+ * Puts a game on the page: the form that seats its players if nobody is seated yet, and the
+ * game itself otherwise. Returns false for a board this version of the site does not have.
+ */
+function openGame(game: GameState): boolean {
+  const entry = getBoardEntry(game.boardId);
+  if (!entry) return false;
   const board = buildBoard(entry.template);
   if (game.players.length === 0) renderSetup(root, game, entry, (started) => runGame(started, board));
   else runGame(game, board);
+  return true;
 }
+
+const watching = watchedRoom(window.location.hash);
+const saved = watching ? undefined : loadGame();
+if (watching) watchGame(watching);
+else if (!saved || !openGame(saved)) renderEmpty(root, openGame);

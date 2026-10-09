@@ -1,8 +1,12 @@
 import { saveGame } from "../../lib/gameCodec";
+import type { GameState } from "../../lib/gameState";
 import { sampleGame } from "../../lib/sampleGame";
 
-/** Shown when there is no game: how to start one. */
-export function renderEmpty(root: HTMLElement): void {
+/**
+ * Shown when there is no game: how to start one. The sample game is handed to `onSample` to
+ * be opened where the page stands, so trying it does not hang on the page reloading.
+ */
+export function renderEmpty(root: HTMLElement, onSample: (game: GameState) => void): void {
   root.innerHTML = `
     <section class="card play-empty">
       <h2>No game in progress</h2>
@@ -15,7 +19,8 @@ export function renderEmpty(root: HTMLElement): void {
         see who collects, then end it whenever you like.</p>
     </section>`;
   document.getElementById("play-sample")?.addEventListener("click", () => {
-    saveGame(sampleGame());
-    window.location.reload();
+    const game = sampleGame();
+    saveGame(game);
+    onSample(game);
   });
 }
