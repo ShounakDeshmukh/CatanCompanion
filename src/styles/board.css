@@ -183,9 +183,9 @@
   background: url("../assets/robber.svg") center / contain no-repeat;
 }
 
-/* a sea-blue cast, so the pirate is not mistaken for the robber */
+/* the pirate is a ship of its own, so it is not mistaken for the robber */
 .hex-robber--pirate {
-  filter: sepia(1) hue-rotate(170deg) saturate(2.4) brightness(1.5);
+  background-image: url("../assets/pirate.svg");
 }
 
 /* Holds the harbor's plaque over its hex, turned to face the served edge (see buildPort). */

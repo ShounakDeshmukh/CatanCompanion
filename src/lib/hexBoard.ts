@@ -141,7 +141,7 @@ function buildHexTop(
   element.dataset.hexIndex = String(index);
 
   if (thief) {
-    // the pirate is the robber's figure at sea, told apart by its colour
+    // the pirate stands on its hex just as the robber does, with its own figure
     const robber = document.createElement("div");
     robber.className = thief === "pirate" ? "hex-robber hex-robber--pirate" : "hex-robber";
     robber.title = thief === "pirate" ? "Pirate" : "Robber";
