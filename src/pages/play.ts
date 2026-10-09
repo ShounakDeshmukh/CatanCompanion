@@ -27,6 +27,7 @@ import {
 import { cityHtml, historyHtml, scoresHtml, statsHtml } from "./play/panels";
 import { renderEmpty } from "./play/empty";
 import { renderResult } from "./play/result";
+import { cue } from "./play/sound";
 import { renderSetup } from "./play/setup";
 import {
   buyDevelopmentCard,
@@ -191,6 +192,8 @@ function runGame(
   /** Set once the game is over and its result is on screen in place of the board. */
   let ended = false;
   let prefs = loadPrefs();
+  /** The turn whose nudge has already sounded, so it sounds once. */
+  let nudged: number | undefined;
 
   const layout = board.recommendedLayout;
   const { vertices, edges } = boardGeometry(board);
@@ -441,8 +444,11 @@ function runGame(
       <div class="play-chips">
         ${state.citiesKnights ? "" : `<button class="play-chip" data-action="buy-card">Buy development card</button>`}
         <button class="play-chip" data-action="zoom">Zoom ${ZOOM_STEPS[zoom] === 1 ? "in" : `${ZOOM_STEPS[zoom]}x`}</button>
+        <button class="play-chip" data-action="sound" aria-pressed="${prefs.sound}">Sound ${
+          prefs.sound ? "on" : "off"
+        }</button>
         <button class="play-chip" data-action="nudge" aria-pressed="${prefs.nudge > 0}"
-          title="Marks the turn clock once a turn has run this long">${
+          title="Marks the turn clock, and chimes if sound is on, once a turn has run this long">${
             prefs.nudge > 0 ? `Nudge at ${prefs.nudge} min` : "Nudge off"
           }</button>
       </div>
@@ -566,6 +572,7 @@ function runGame(
     undoStack.push(state);
     saveUndo(undoStack);
     placed = placedSite(state, next);
+    if (placed !== undefined) cue("build");
     show(next);
   }
 
@@ -646,6 +653,7 @@ function runGame(
     if (rolled === state) return;
     commit(rolled);
     lightRolled(total);
+    cue(barbariansAttacked(state) ? "barbarians" : total === 7 ? "seven" : "roll");
   }
 
   /** The facedown stack as it stands, with the hex being edited put back so it can be re-picked. */
@@ -722,7 +730,12 @@ function runGame(
       dice = [rollDie(), rollDie()];
       roll(dice[0] + dice[1], state.citiesKnights ? EVENT_FACES[rollDie() - 1] : undefined);
     },
-    event: (value) => commit(setLastEvent(state, value as EventDie)),
+    event: (value) => {
+      const landed = barbariansAttacked(state);
+      commit(setLastEvent(state, value as EventDie));
+      // the event die is often entered after the total, so the ship may only arrive now
+      if (!landed && barbariansAttacked(state)) cue("barbarians");
+    },
     next: () => {
       const next = endTurn(state);
       dice = undefined;
@@ -818,6 +831,13 @@ function runGame(
     wall: (value) => {
       const [seat, change] = value.split(":").map(Number);
       commit(changeWalls(state, seat, change === 1 ? 1 : -1));
+    },
+    sound: () => {
+      prefs = { ...prefs, sound: !prefs.sound };
+      savePrefs(prefs);
+      // heard at once, which also lets the browser know sound was asked for by a tap
+      cue("build");
+      render();
     },
     nudge: () => {
       const step = NUDGE_STEPS.indexOf(prefs.nudge);
@@ -951,6 +971,10 @@ function runGame(
     timer.textContent = elapsed(state.turnStartedAt);
     const late = !viewing && prefs.nudge > 0 && Date.now() - state.turnStartedAt >= prefs.nudge * 60_000;
     timer.classList.toggle("is-late", late);
+    if (late && nudged !== state.turn) {
+      nudged = state.turn;
+      cue("nudge");
+    }
   }, 1000);
 
   keepScreenAwake();

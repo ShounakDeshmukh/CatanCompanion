@@ -814,10 +814,10 @@ test("turn pace is timed roll to roll, per player, leaving out breaks and the tu
 });
 
 test("stored preferences keep what is recognisable and default the rest", () => {
-  assert.deepEqual(parsePrefs(null), { nudge: 0 });
-  assert.deepEqual(parsePrefs({ nudge: 3 }), { nudge: 3 });
-  assert.deepEqual(parsePrefs({ nudge: 4, other: true }), { nudge: 0 });
-  assert.deepEqual(parsePrefs("nonsense"), { nudge: 0 });
+  assert.deepEqual(parsePrefs(null), { sound: false, nudge: 0 });
+  assert.deepEqual(parsePrefs({ sound: true, nudge: 3 }), { sound: true, nudge: 3 });
+  assert.deepEqual(parsePrefs({ sound: "yes", nudge: 4, other: true }), { sound: false, nudge: 0 });
+  assert.deepEqual(parsePrefs("nonsense"), { sound: false, nudge: 0 });
 });
 
 test("a fog hex stays fog in the replay until it is explored", () => {

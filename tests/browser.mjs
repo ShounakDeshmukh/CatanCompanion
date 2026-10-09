@@ -216,6 +216,18 @@ try {
   await open("play.html");
   await sleep(1200);
   check("a turn past the nudge marks its clock, and the choice survives a reload", await js(`document.querySelector("#play-timer").classList.contains("is-late") && document.querySelector("[data-action=nudge]").innerText === "Nudge at 1 min"`));
+  // sound is made on the spot, so count what a cue asks the browser to play
+  await js(`(() => { window.played = { notes: 0, rattles: 0 };
+    const note = AudioContext.prototype.createOscillator, rattle = AudioContext.prototype.createBufferSource;
+    AudioContext.prototype.createOscillator = function () { window.played.notes++; return note.call(this); };
+    AudioContext.prototype.createBufferSource = function () { window.played.rattles++; return rattle.call(this); }; })()`);
+  await tap("[data-action=next]");
+  await tap('[data-action=roll][data-value="5"]');
+  check("the game is silent until sound is switched on", await js(`window.played.notes + window.played.rattles === 0`));
+  await tap("[data-action=sound]");
+  await tap("[data-action=next]");
+  await tap('[data-action=roll][data-value="7"]');
+  check("with sound on, a seven rattles the dice and plays its two notes", await js(`window.played.notes === 3 && window.played.rattles === 3 && document.querySelector("[data-action=sound]").innerText === "Sound on"`), JSON.stringify(await js(`window.played`)));
   await js(`window.confirm = () => true`);
   // if the card cannot be drawn there is no result to show, and the game must survive that
   await js(`(() => { window.alert = (said) => (window.alerted = said);

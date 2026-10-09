@@ -6,6 +6,7 @@ import { SITE_URL } from "../../lib/site";
 import { playerTag } from "./format";
 import { replayGif } from "./replayGif";
 import { cardArt, cardCanvas, drawResultCard, finalScene } from "./resultCard";
+import { cue } from "./sound";
 
 /** Hands a file to the phone's share sheet where there is one, and saves it otherwise. */
 async function shareFile(file: File): Promise<void> {
@@ -105,7 +106,10 @@ export async function renderResult(
 
   offer("#play-share-picture", "Share picture", picture, "catan-result.png");
   // a game stopped early has a leader, which is not the same as a winner
-  if (won) celebrate(winner.color);
+  if (won) {
+    celebrate(winner.color);
+    cue("win");
+  }
 
   const moments = replay(state);
   const noReplay = () => root.querySelector("#play-share-replay")?.remove();
