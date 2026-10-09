@@ -59,11 +59,14 @@ export type BoardPainter = (
   changed?: string | number
 ) => void;
 
-async function loadImage(src: string): Promise<HTMLImageElement> {
-  const image = new Image();
-  image.src = src;
-  await image.decode();
-  return image;
+/** Waits for the load event and not for `decode()`, which a tab in the background never answers. */
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Could not load ${src}`));
+    image.src = src;
+  });
 }
 
 async function loadAll<Key extends string | number>(

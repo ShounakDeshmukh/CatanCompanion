@@ -206,14 +206,14 @@ try {
   check("the sample game opens mid-game, ready to roll", await js(`!!document.querySelector(".play-pad") && ${game}.turn > 5 && document.querySelectorAll(".vertex--settlement, .vertex--city").length === 6`));
   await tap('[data-action=roll][data-value="8"]');
   await js(`window.confirm = () => true`);
-  // if the artwork cannot be loaded there is no result to show, and the game must survive that
+  // if the card cannot be drawn there is no result to show, and the game must survive that
   await js(`(() => { window.alert = (said) => (window.alerted = said);
-    window.realDecode = HTMLImageElement.prototype.decode;
-    HTMLImageElement.prototype.decode = () => Promise.reject(new Error("offline")); })()`);
+    window.realContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = () => null; })()`);
   await tap("[data-action=end]");
   await sleep(300);
   check("a result that cannot be drawn leaves the game as it was", await js(`!!window.alerted && !!document.querySelector("[data-action=next]") && ${game}.rolls.length > 0`));
-  await js(`HTMLImageElement.prototype.decode = window.realDecode`);
+  await js(`HTMLCanvasElement.prototype.getContext = window.realContext`);
   // the picture is on show only until the replay takes its place, so note it as it is made
   await js(`(() => { const toBlob = HTMLCanvasElement.prototype.toBlob;
     HTMLCanvasElement.prototype.toBlob = function (...given) { window.drawn = [this.width, this.height].join(); toBlob.apply(this, given); }; })()`);

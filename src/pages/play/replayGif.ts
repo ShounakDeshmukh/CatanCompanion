@@ -9,7 +9,8 @@ const SCALE = 0.5;
 /** How long the game takes to play back, within what each frame is allowed. */
 const PLAYBACK_MS = 12_000;
 const SLOWEST_FRAME_MS = 450;
-const FASTEST_FRAME_MS = 80;
+/** Short enough that the longest games still fit the playback time, and no browser rounds it up. */
+const FASTEST_FRAME_MS = 50;
 const HOLD_MS = 3500;
 
 /** The card as it stood at one moment: the turn and its roll where the winner will be named. */
