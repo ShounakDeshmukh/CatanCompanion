@@ -137,7 +137,7 @@ export function scoresHtml(state: GameState, edges: Edge[]): string {
         ? ""
         : `<div class="play-alert">
             <p>${escapeHtml(state.players[winner].name)} has reached ${points[winner]} points.</p>
-            <div class="play-actions"><button class="btn btn-secondary" data-action="end">Finish and record the game</button></div>
+            <div class="play-actions"><button class="btn btn-secondary" data-action="end">Finish the game and see the result</button></div>
           </div>`
     }
     <div class="play-table-wrap">
