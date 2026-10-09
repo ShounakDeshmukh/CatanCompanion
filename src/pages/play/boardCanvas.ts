@@ -11,6 +11,7 @@ import { pipsForNumber } from "../../data/boards/types";
 import type { PlayerColor } from "../../lib/gameState";
 import type { BoardView } from "../../lib/replay";
 import { boardGeometry } from "../../lib/vertices";
+import { PIECE_KINDS, PIECE_SPAN, pieceImageUrl, type PieceKind } from "./pieces";
 
 export const INK = "#2b1c10";
 export const HEADING = '"Cinzel", Georgia, serif';
@@ -89,18 +90,39 @@ async function loadAll<Key extends string | number>(
   return Object.fromEntries(entries) as Record<Key, HTMLImageElement>;
 }
 
+const pieceKey = (kind: PieceKind, color: PlayerColor, asleep: boolean) =>
+  `${kind} ${color}${asleep ? " asleep" : ""}`;
+
+/** Every piece in each of the colours at the table, with the knights asleep as well as awake. */
+function pieceArt(colors: PlayerColor[]): Record<string, string> {
+  const art: Record<string, string> = {};
+  for (const color of colors) {
+    for (const kind of PIECE_KINDS) {
+      art[pieceKey(kind, color, false)] = pieceImageUrl(kind, PIECE_COLOR[color]);
+      if (kind.startsWith("knight")) {
+        art[pieceKey(kind, color, true)] = pieceImageUrl(kind, PIECE_COLOR[color], true);
+      }
+    }
+  }
+  return art;
+}
+
 /**
- * The Play page's board, redrawn on a canvas so it can go into a picture: the same tiles and
- * the same proportions as board.css and play.css give the pieces. Resolves once the artwork
- * has loaded, after which painting is immediate.
+ * The Play page's board, redrawn on a canvas so it can go into a picture: the same tiles,
+ * the same pieces and the same proportions as board.css and play.css give them. Resolves
+ * once the artwork has loaded, after which painting is immediate.
  */
-export async function boardPainter(board: CatanBoard): Promise<BoardPainter> {
+export async function boardPainter(
+  board: CatanBoard,
+  colors: PlayerColor[]
+): Promise<BoardPainter> {
   const sideways = board.horizontal === true;
-  const [tiles, harbors, robber, pirate] = await Promise.all([
+  const [tiles, harbors, robber, pirate, pieces] = await Promise.all([
     loadAll(sideways ? HEX_ART_SIDEWAYS : HEX_ART),
     loadAll<Orientation>(sideways ? HARBOR_ART_SIDEWAYS : HARBOR_ART),
     loadImage(robberArt),
     loadImage(pirateArt),
+    loadAll(pieceArt(colors)),
   ]);
   const { vertices, edges, aspect, side } = boardGeometry(board);
   const sites = new Map([...vertices, ...edges].map((site) => [site.id, site]));
@@ -145,17 +167,6 @@ export async function boardPainter(board: CatanBoard): Promise<BoardPainter> {
       draw.textAlign = "center";
       draw.textBaseline = "middle";
       draw.fillText(value, 0, y);
-    };
-    /** A piece's dark outline and pale inner line, then its colour, around the current path. */
-    const piece = (color: string) => {
-      draw.strokeStyle = OUTLINE;
-      draw.lineWidth = hexSize * 0.07;
-      draw.stroke();
-      draw.strokeStyle = "rgb(255 255 255 / 0.7)";
-      draw.lineWidth = hexSize * 0.025;
-      draw.stroke();
-      draw.fillStyle = color;
-      draw.fill();
     };
     /** A label on something along a hex's edge, set out from the centre towards that edge. */
     const plaque = (
@@ -276,54 +287,30 @@ export async function boardPainter(board: CatanBoard): Promise<BoardPainter> {
     thief(view.pirate, pirate);
 
     const presence = mark?.opacity ?? 1;
-    const presenceAt = (site: string) => (site === mark?.site ? presence : 1);
+    /** Draws one piece centred on the origin, a little off the board on its own shadow. */
+    const piece = (kind: PieceKind, player: number, site: string, asleep: boolean = false) => {
+      const [across, down] = PIECE_SPAN[kind].map((span) => span * hexSize);
+      draw.globalAlpha = site === mark?.site ? presence : 1;
+      shadow("rgb(0 0 0 / 0.5)", hexSize * 0.03, hexSize * 0.015);
+      draw.drawImage(pieces[pieceKey(kind, view.players[player].color, asleep)], -across / 2, -down / 2, across, down);
+    };
+
     const ships = new Set(view.ships);
     for (const edge of edges) {
       const owner = view.roads[edge.id];
       if (owner === undefined) continue;
-      at(edge, (edge.angle * Math.PI) / 180, () => {
-        draw.globalAlpha = presenceAt(edge.id);
-        const long = hexSize * 0.48;
-        const thick = hexSize * 0.1;
-        draw.beginPath();
-        draw.roundRect(-long / 2, -thick / 2, long, thick, thick * 0.2);
-        piece(PIECE_COLOR[view.players[owner].color]);
-        if (ships.has(edge.id)) {
-          // a ship is a road with a pale stripe down it
-          draw.fillStyle = "rgb(255 255 255 / 0.85)";
-          draw.fillRect(-long / 2, -thick * 0.2, long, thick * 0.4);
-        }
-      });
+      at(edge, (edge.angle * Math.PI) / 180, () =>
+        piece(ships.has(edge.id) ? "ship" : "road", owner, edge.id)
+      );
     }
-
     for (const vertex of vertices) {
       const building = view.buildings[vertex.id];
       const knight = view.knights[vertex.id];
-      if (building) {
-        at(vertex, 0, () => {
-          draw.globalAlpha = presenceAt(vertex.id);
-          const half = hexSize * (building.kind === "city" ? 0.19 : 0.13);
-          draw.beginPath();
-          draw.roundRect(-half, -half, half * 2, half * 2, hexSize * 0.02);
-          piece(PIECE_COLOR[view.players[building.player].color]);
-          if (building.kind !== "city") return;
-          // a city is the larger block with a pale line inside it
-          draw.strokeStyle = "rgb(255 255 255 / 0.85)";
-          draw.lineWidth = hexSize * 0.025;
-          draw.strokeRect(-half * 0.68, -half * 0.68, half * 1.36, half * 1.36);
-        });
-      } else if (knight) {
-        at(vertex, upright, () => {
-          // asleep, a knight is faded
-          draw.globalAlpha = presenceAt(vertex.id) * (knight.active ? 1 : 0.6);
-          draw.beginPath();
-          draw.arc(0, 0, hexSize * 0.17, 0, Math.PI * 2);
-          piece(PIECE_COLOR[view.players[knight.player].color]);
-          draw.globalAlpha = presenceAt(vertex.id);
-          shadow("#000", hexSize * 0.03);
-          text(String(knight.level), hexSize * 0.01, `700 ${hexSize * 0.17}px ${HEADING}`, "#fff");
-        });
-      }
+      if (!building && !knight) continue;
+      at(vertex, upright, () => {
+        if (building) piece(building.kind, building.player, vertex.id);
+        else piece(`knight-${knight.level}`, knight.player, vertex.id, !knight.active);
+      });
     }
 
     const spot = typeof mark?.site === "number" ? centres[mark.site] : sites.get(mark?.site ?? "");

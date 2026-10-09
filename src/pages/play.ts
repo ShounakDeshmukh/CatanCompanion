@@ -26,6 +26,7 @@ import {
 } from "./play/format";
 import { cityHtml, historyHtml, scoresHtml, statsHtml } from "./play/panels";
 import { renderEmpty } from "./play/empty";
+import { mountPieceSprite, pieceHtml } from "./play/pieces";
 import { renderResult } from "./play/result";
 import { cue } from "./play/sound";
 import { renderSetup } from "./play/setup";
@@ -463,6 +464,8 @@ function runGame(
       boardEl.style.maxWidth = zoom === 0 ? "" : "none";
       pieceLayer = document.createElement("div");
       pieceLayer.className = "piece-layer";
+      // Seafarers maps are drawn turned a quarter, so what stands on a corner is turned back
+      if (board.horizontal) pieceLayer.style.setProperty("--upright", "-90deg");
       (boardEl.querySelector(".hex-board") as HTMLElement).appendChild(pieceLayer);
       boardStale = false;
     }
@@ -512,12 +515,10 @@ function runGame(
           data-action="road" data-value="${edge.id}" aria-label="${escapeHtml(label)}"
           style="left: ${edge.x * 100}%; top: ${edge.y * 100}%; --edge-angle: ${edge.angle}deg;${
             owner ? ` --player-color: var(--player-${owner.color})` : ""
-          }"></button>`;
+          }">${owner ? pieceHtml(piece) : ""}</button>`;
       })
       .join("");
 
-    // Seafarers maps are drawn turned a quarter, so a knight's number is turned back
-    const upright = board.horizontal ? ` style="transform: rotate(-90deg)"` : "";
     const cornerHtml = buildable
       .map((vertex) => {
         const at = `left: ${vertex.x * 100}%; top: ${vertex.y * 100}%;`;
@@ -527,14 +528,14 @@ function runGame(
           const label = `${state.players[building.player].name}'s ${building.kind}`;
           return `<button class="vertex vertex--${building.kind}${dropping(vertex.id)}" data-action="build"
             data-value="${vertex.id}" aria-label="${escapeHtml(label)}"
-            style="${at}${color(building.player)}"></button>`;
+            style="${at}${color(building.player)}">${pieceHtml(building.kind)}</button>`;
         }
         const knight = state.knights[vertex.id];
         if (knight) {
           const label = `${state.players[knight.player].name}'s ${knight.active ? "active" : "inactive"} ${KNIGHT_RANK[knight.level - 1].toLowerCase()} knight`;
           return `<button class="vertex vertex--knight${dropping(vertex.id)}" data-action="knight-menu"
             data-value="${vertex.id}" data-active="${knight.active}" aria-label="${escapeHtml(label)}"
-            style="${at}${color(knight.player)}"><span${upright}>${knight.level}</span></button>`;
+            style="${at}${color(knight.player)}">${pieceHtml(`knight-${knight.level}`)}</button>`;
         }
         const open =
           (placing === "build" || placing === "knight") &&
@@ -978,6 +979,7 @@ function runGame(
   }, 1000);
 
   keepScreenAwake();
+  mountPieceSprite();
   render();
   void renderShare();
   // a reload should not cut the viewers off

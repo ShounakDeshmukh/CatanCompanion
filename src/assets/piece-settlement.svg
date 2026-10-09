@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+<title>Settlement</title>
+<defs><clipPath id="settlement-clip"><path d="M14,88 L14,57 L11,57 L32,20 L68,10 L89,46 L86,47.2 L86,78 L50,88 Z"/></clipPath><linearGradient id="settlement-roof" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.4"/><stop offset="1" stop-color="#fff" stop-opacity="0.18"/></linearGradient><linearGradient id="settlement-wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.1"/><stop offset="1" stop-color="#000" stop-opacity="0.1"/></linearGradient><linearGradient id="settlement-side" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity="0.22"/><stop offset="1" stop-color="#000" stop-opacity="0.34"/></linearGradient><radialGradient id="settlement-sheen" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff" stop-opacity="0.35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+<path d="M14,88 L14,57 L11,57 L32,20 L68,10 L89,46 L86,47.2 L86,78 L50,88 Z" fill="currentColor"/>
+<g clip-path="url(#settlement-clip)">
+<path d="M14,88 L50,88 L50,55 L32,23 L14,55 Z" fill="url(#settlement-wall)"/>
+<path d="M50,55 L86,45 L86,78 L50,88 Z" fill="url(#settlement-side)"/>
+<path d="M50,56 L86,46 L86,53 L50,63 Z" fill="#000" fill-opacity=".22"/>
+<path d="M32,20 L68,10 L89,46 L53,56 Z" fill="currentColor"/><path d="M32,20 L68,10 L89,46 L53,56 Z" fill="url(#settlement-roof)"/>
+<path d="M11,57 L32,20 L53,56 L47,57 L32,31 L17,57 Z" fill="currentColor"/><path d="M11,57 L32,20 L53,56 L47,57 L32,31 L17,57 Z" fill="#fff" fill-opacity=".16"/>
+<path d="M17,57 L32,31 L47,57" fill="none" stroke="#1d140c" stroke-opacity="0.4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M32,20 L53,56 L89,46" fill="none" stroke="#1d140c" stroke-opacity="0.3" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M50,58 L50,88" fill="none" stroke="#1d140c" stroke-opacity="0.3" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<ellipse cx="44" cy="22" rx="10" ry="4" transform="rotate(-16 44 22)" fill="url(#settlement-sheen)"/>
+<path d="M26.5,86 L26.5,73 A5.5,5.5 0 0 1 37.5,73 L37.5,86 Z" fill="#24170c" stroke="#fff" stroke-opacity=".5" stroke-width="2" stroke-linejoin="round"/>
+<path d="M14,88 L14,57 L11,57 L32,20 L68,10 L89,46 L86,47.2 L86,78 L50,88 Z" fill="none" stroke="#fff" stroke-opacity=".65" stroke-width="10" stroke-linejoin="round"/>
+</g>
+<path d="M14,88 L14,57 L11,57 L32,20 L68,10 L89,46 L86,47.2 L86,78 L50,88 Z" fill="none" stroke="#1d140c" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>

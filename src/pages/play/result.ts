@@ -64,7 +64,10 @@ export async function renderResult(
   boardLabel: string
 ): Promise<void> {
   const record = summarize(state, boardLabel);
-  const art = await cardArt(board);
+  const art = await cardArt(
+    board,
+    state.players.map((player) => player.color)
+  );
   const { canvas, draw } = cardCanvas();
   drawResultCard(draw, record, art, finalScene(record, state));
   const picture = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));

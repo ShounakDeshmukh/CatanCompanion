@@ -343,63 +343,58 @@
   box-shadow: 0 0 0 1px rgb(0 0 0 / 0.4);
 }
 
-.edge--road::before,
-.edge--ship::before {
-  inset: 39% -4%;
-  border-radius: 2px;
-  background: var(--player-color);
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.6), 0 0 0 2.5px #1d140c, 0 1px 2px rgb(0 0 0 / 0.5);
-  transform: rotate(var(--edge-angle));
+/*
+ * A piece that is down is its own picture, painted in its player's colour, and takes the
+ * place of the marker. The widths give each piece the share of a hex that pieces.ts lists,
+ * the box they sit in being 0.46 of one. A road or ship is turned along its side; what
+ * stands on a corner is kept upright.
+ */
+:is(.edge--road, .edge--ship, .vertex--settlement, .vertex--city, .vertex--knight)::before {
+  content: none;
 }
 
-/* a ship is a road with a pale stripe down it, so the two tell apart at a glance */
-.edge--ship::before {
-  background: linear-gradient(
-    var(--player-color) 30%,
-    rgb(255 255 255 / 0.85) 30% 70%,
-    var(--player-color) 70%
-  );
+.piece {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  rotate: var(--upright, 0deg);
+  aspect-ratio: 1;
+  color: var(--player-color);
+  filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.55));
 }
 
-.vertex--settlement::before,
-.vertex--city::before {
-  inset: 22%;
-  border-radius: 3px;
-  background: var(--player-color);
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.6), 0 0 0 2.5px #1d140c, 0 1px 3px rgb(0 0 0 / 0.5);
+.piece--settlement {
+  width: 65%;
 }
 
-.vertex--city::before {
-  inset: 8%;
-  outline: 2px solid rgb(255 255 255 / 0.85);
-  outline-offset: -5px;
+.piece--city {
+  width: 91%;
 }
 
-/* A knight is a round token carrying its strength. Asleep, it is hollowed out and faded. */
-.vertex--knight {
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-family: var(--font-heading);
-  font-size: calc(var(--hex-size) * 0.17);
-  font-weight: 700;
-  line-height: 1;
-  text-shadow: 0 0 2px #000, 0 0 2px #000;
+.piece--knight-1,
+.piece--knight-2,
+.piece--knight-3 {
+  width: 78%;
 }
 
-.vertex--knight::before {
-  inset: 12%;
-  background: var(--player-color);
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.6), 0 0 0 2.5px #1d140c, 0 1px 3px rgb(0 0 0 / 0.5);
+.piece--road,
+.piece--ship {
+  width: 109%;
+  rotate: var(--edge-angle);
 }
 
-.vertex--knight span {
-  position: relative;
+.piece--road {
+  aspect-ratio: 100 / 24;
 }
 
-.vertex--knight[data-active="false"]::before {
-  opacity: 0.55;
-  box-shadow: 0 0 0 2px #1d140c;
+.piece--ship {
+  aspect-ratio: 100 / 40;
+}
+
+/* asleep, a knight's helmet is bare stone, and its base still says whose it is */
+.vertex--knight[data-active="false"] .piece {
+  --helm: #a8a296;
 }
 
 .play-alert p {
@@ -716,11 +711,10 @@
 
 /*
  * Motion on the board: a piece drops onto its spot, and a roll lights the hexes it pays out
- * on. These use the scale property so as to leave alone the transforms that turn a road
- * along its side and keep a disc upright.
+ * on. These use the scale property so as to leave alone what turns a road along its side
+ * and keeps a disc upright.
  */
-.vertex.is-new::before,
-.edge.is-new::before {
+.is-new .piece {
   animation: piece-drop 380ms cubic-bezier(0.2, 1.4, 0.4, 1) backwards;
 }
 
@@ -767,7 +761,7 @@
 @media (prefers-reduced-motion: reduce) {
   .play-card,
   .die,
-  .is-new::before,
+  .is-new .piece,
   .is-rolled::after,
   .is-rolled .hex-chit {
     animation: none;

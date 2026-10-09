@@ -1,7 +1,7 @@
 import grainArt from "../../assets/parchment.webp";
 import type { CatanBoard } from "../../data/boards/types";
 import type { GameRecord } from "../../lib/gameHistory";
-import type { GameState } from "../../lib/gameState";
+import type { GameState, PlayerColor } from "../../lib/gameState";
 import type { BoardView } from "../../lib/replay";
 import { SITE_URL } from "../../lib/site";
 import {
@@ -39,12 +39,12 @@ export interface CardArt {
 }
 
 /**
- * Loads everything a card of this board needs. The fonts are waited for too: text drawn
- * before a web font has loaded falls back for good.
+ * Loads everything a card of this board needs, with the pieces in the colours at the table.
+ * The fonts are waited for too: text drawn before a web font has loaded falls back for good.
  */
-export async function cardArt(board: CatanBoard): Promise<CardArt> {
+export async function cardArt(board: CatanBoard, colors: PlayerColor[]): Promise<CardArt> {
   const [paintBoard, grain] = await Promise.all([
-    boardPainter(board),
+    boardPainter(board, colors),
     loadImage(grainArt),
     document.fonts.load(`700 64px ${HEADING}`),
     document.fonts.load(`400 40px ${BODY}`),

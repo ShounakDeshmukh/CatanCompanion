@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+<title>City</title>
+<defs><clipPath id="city-clip"><path d="M12,88 L12,39 L10,39 L24,12 L44,6.5 L58,33 L56,33.6 L56,34.6 L71,30.5 L88,56.5 L86,57.1 L86,82.5 L66,88 Z"/></clipPath><linearGradient id="city-roof" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.4"/><stop offset="1" stop-color="#fff" stop-opacity="0.18"/></linearGradient><linearGradient id="city-wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.1"/><stop offset="1" stop-color="#000" stop-opacity="0.1"/></linearGradient><linearGradient id="city-side" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity="0.22"/><stop offset="1" stop-color="#000" stop-opacity="0.34"/></linearGradient><radialGradient id="city-sheen" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff" stop-opacity="0.35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+<path d="M12,88 L12,39 L10,39 L24,12 L44,6.5 L58,33 L56,33.6 L56,34.6 L71,30.5 L88,56.5 L86,57.1 L86,82.5 L66,88 Z" fill="currentColor"/>
+<g clip-path="url(#city-clip)">
+<path d="M36,37 L56,31.5 L56,70 L36,75 Z" fill="currentColor"/><path d="M36,37 L56,31.5 L56,70 L36,75 Z" fill="url(#city-side)"/>
+<path d="M12,88 L36,88 L36,37 L24,15 L12,37 Z" fill="currentColor"/><path d="M12,88 L36,88 L36,37 L24,15 L12,37 Z" fill="url(#city-wall)"/>
+<path d="M24,12 L44,6.5 L58,33 L38,38.5 Z" fill="currentColor"/><path d="M24,12 L44,6.5 L58,33 L38,38.5 Z" fill="url(#city-roof)"/>
+<path d="M10,39 L24,12 L38,39 L33,39 L24,21 L15,39 Z" fill="currentColor"/><path d="M10,39 L24,12 L38,39 L33,39 L24,21 L15,39 Z" fill="#fff" fill-opacity=".16"/>
+<path d="M15,39 L24,21 L33,39" fill="none" stroke="#1d140c" stroke-opacity="0.4" stroke-width="2.86" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M24,12 L38,38.5 L58,33" fill="none" stroke="#1d140c" stroke-opacity="0.3" stroke-width="2.86" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M36,40 L36,88" fill="none" stroke="#1d140c" stroke-opacity="0.3" stroke-width="2.86" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M66,60 L86,54.5 L86,82.5 L66,88 Z" fill="currentColor"/><path d="M66,60 L86,54.5 L86,82.5 L66,88 Z" fill="url(#city-side)"/>
+<path d="M66,61 L86,55.5 L86,62 L66,67.5 Z" fill="#000" fill-opacity=".22"/>
+<path d="M36,88 L66,88 L66,60 L51,39 L36,60 Z" fill="currentColor"/><path d="M36,88 L66,88 L66,60 L51,39 L36,60 Z" fill="url(#city-wall)"/>
+<path d="M51,36 L71,30.5 L88,56.5 L68,62 Z" fill="currentColor"/><path d="M51,36 L71,30.5 L88,56.5 L68,62 Z" fill="url(#city-roof)"/>
+<path d="M36,59 L51,36 L68,62 L63,62 L51,44 L39,62 L36,62 Z" fill="currentColor"/><path d="M36,59 L51,36 L68,62 L63,62 L51,44 L39,62 L36,62 Z" fill="#fff" fill-opacity=".16"/>
+<path d="M39,62 L51,44 L63,62" fill="none" stroke="#1d140c" stroke-opacity="0.4" stroke-width="2.86" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M51,36 L68,62 L88,56.5" fill="none" stroke="#1d140c" stroke-opacity="0.3" stroke-width="2.86" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M66,63 L66,88" fill="none" stroke="#1d140c" stroke-opacity="0.3" stroke-width="2.86" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M36,62 L36,88" fill="none" stroke="#1d140c" stroke-opacity="0.45" stroke-width="2.86" stroke-linecap="round" stroke-linejoin="round"/>
+<ellipse cx="33" cy="12" rx="8" ry="3.4" transform="rotate(-15 33 12)" fill="url(#city-sheen)"/>
+<ellipse cx="62" cy="38" rx="8" ry="3.4" transform="rotate(-15 62 38)" fill="url(#city-sheen)"/>
+<path d="M19.5,62 L19.5,53 A4.5,4.5 0 0 1 28.5,53 L28.5,62 Z" fill="#24170c" stroke="#fff" stroke-opacity=".5" stroke-width="1.43" stroke-linejoin="round"/>
+<path d="M45,86 L45,75 A6,6 0 0 1 57,75 L57,86 Z" fill="#24170c" stroke="#fff" stroke-opacity=".5" stroke-width="1.43" stroke-linejoin="round"/>
+<path d="M71.5,74.2 L71.5,66.4 L80.5,64 L80.5,71.8 Z" fill="#24170c" stroke="#fff" stroke-opacity=".5" stroke-width="1.43" stroke-linejoin="round"/>
+<path d="M12,88 L12,39 L10,39 L24,12 L44,6.5 L58,33 L56,33.6 L56,34.6 L71,30.5 L88,56.5 L86,57.1 L86,82.5 L66,88 Z" fill="none" stroke="#fff" stroke-opacity=".65" stroke-width="7.14" stroke-linejoin="round"/>
+</g>
+<path d="M12,88 L12,39 L10,39 L24,12 L44,6.5 L58,33 L56,33.6 L56,34.6 L71,30.5 L88,56.5 L86,57.1 L86,82.5 L66,88 Z" fill="none" stroke="#1d140c" stroke-width="4.29" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>
