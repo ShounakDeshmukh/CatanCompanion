@@ -61,6 +61,24 @@ export function escapeHtml(text: string): string {
   );
 }
 
+/** Which of a die face's nine cells, counted along its rows, carry a pip. */
+const PIPS: Record<number, number[]> = {
+  1: [4],
+  2: [0, 8],
+  3: [0, 4, 8],
+  4: [0, 2, 6, 8],
+  5: [0, 2, 4, 6, 8],
+  6: [0, 2, 3, 5, 6, 8],
+};
+
+/** A die showing one face, which tumbles into place when it is first drawn. */
+export function dieHtml(face: number): string {
+  const cells = Array.from({ length: 9 }, (_, cell) =>
+    PIPS[face].includes(cell) ? "<i data-pip></i>" : "<i></i>"
+  );
+  return `<span class="die" role="img" aria-label="${face}">${cells.join("")}</span>`;
+}
+
 export const drawnHtml = new WeakMap<HTMLElement, string>();
 
 /**

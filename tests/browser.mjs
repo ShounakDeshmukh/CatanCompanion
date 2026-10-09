@@ -180,6 +180,7 @@ try {
   check("setup ends with the dice pad showing", await js(`!!document.querySelector(".play-pad") && ${game}.setup.length === ${game}.players.length * 4`));
   await tap('[data-action=roll][data-value="8"]');
   check("the pad hides after a roll and Next player appears", await js(`!document.querySelector(".play-pad") && !!document.querySelector("[data-action=next]")`));
+  check("a roll lights the hexes it pays out on", await js(`document.querySelectorAll(".hex.is-rolled").length > 0 && document.querySelectorAll(".hex.is-rolled").length === document.querySelectorAll(".hex-top.is-rolled").length`));
   await tap("[data-action=undo]");
   check("undo brings the pad back", await js(`!!document.querySelector(".play-pad") && ${game}.rolls.length === 0`));
   await tap('[data-action=roll][data-value="6"]');
@@ -204,7 +205,11 @@ try {
   await tap("#play-sample");
   await sleep(900);
   check("the sample game opens mid-game, ready to roll", await js(`!!document.querySelector(".play-pad") && ${game}.turn > 5 && document.querySelectorAll(".vertex--settlement, .vertex--city").length === 6`));
-  await tap('[data-action=roll][data-value="8"]');
+  await tap("[data-action=virtual]");
+  check("a roll made by the app shows its two dice", await js(`(() => { const faces = [...document.querySelectorAll(".die")].map((die) => die.querySelectorAll("[data-pip]").length); return faces.length === 2 && faces[0] + faces[1] === ${game}.rolls.at(-1).total; })()`));
+  await tap('[data-action=mode][data-value=road]');
+  await js(`document.querySelector(".edge:not(.edge--road)").click()`);
+  check("only the piece just placed drops in", await js(`document.querySelectorAll(".is-new").length === 1 && document.querySelector(".is-new").classList.contains("edge--road")`));
   await js(`window.confirm = () => true`);
   // if the card cannot be drawn there is no result to show, and the game must survive that
   await js(`(() => { window.alert = (said) => (window.alerted = said);

@@ -14,6 +14,7 @@ import {
   KNIGHT_RANK,
   TOTALS,
   barbarianOutcome,
+  dieHtml,
   elapsed,
   escapeHtml,
   nameList,
@@ -133,6 +134,17 @@ const MODE_HINT: Record<Mode, string> = {
 const EVENT_FACES: EventDie[] = ["ship", "ship", "ship", "yellow", "blue", "green"];
 const rollDie = () => 1 + Math.floor(Math.random() * 6);
 
+/** Where a piece went down between two states of the game, if one did. */
+function placedSite(before: GameState, after: GameState): string | undefined {
+  for (const entry of after.ledger.slice(before.ledger.length)) {
+    if (entry.kind === "build") return entry.site;
+    if (entry.kind === "troop" && (entry.action === "recruit" || entry.action === "move")) {
+      return entry.site;
+    }
+  }
+  return undefined;
+}
+
 /** Phones dim and lock between turns, which is the quickest way to stop anyone using this. */
 function keepScreenAwake(): void {
   const request = () => {
@@ -161,6 +173,8 @@ function runGame(
   let dice: [number, number] | undefined;
   let boardStale = true;
   let pieceLayer: HTMLElement | undefined;
+  /** The corner or side a piece has just gone down on, for the one draw that drops it in. */
+  let placed: string | undefined;
   /** The fog hex being turned over, and the terrain picked for it while its disc is chosen. */
   let revealing: { index: number; type?: HexType } | undefined;
   /** Who is moving the robber when it was a knight that sent it, not a seven. */
@@ -314,7 +328,6 @@ function runGame(
         ${undo}`;
     }
 
-    const shown = dice ? `${dice[0]} + ${dice[1]} = ${last.total}` : String(last.total);
     const collecting = takings(state, last.payouts, "takes");
     let detail: string;
     if (last.total === 7) {
@@ -330,7 +343,8 @@ function runGame(
     return `
       ${header}
       <div class="play-result" aria-live="polite">
-        <p class="play-rolled">Rolled <strong class="play-rolled__total">${shown}</strong></p>
+        <p class="play-rolled">Rolled ${(dice ?? []).map(dieHtml).join("")}
+          <strong class="play-rolled__total">${last.total}</strong></p>
         ${detail}
         ${
           paired === null
@@ -470,6 +484,7 @@ function runGame(
       sideOpen = (ends) => inBox && ends.some((end) => network.has(end));
     }
 
+    const dropping = (site: string) => (site === placed ? " is-new" : "");
     const ships = new Set(state.ships);
     const roadHtml = roadSites
       .filter(
@@ -481,7 +496,7 @@ function runGame(
         const owner = state.players[state.roads[edge.id]];
         const piece = ships.has(edge.id) ? "ship" : "road";
         const label = owner ? `${owner.name}'s ${piece}` : "Empty hex side";
-        return `<button class="edge${owner ? ` edge--${piece}` : ""}"
+        return `<button class="edge${owner ? ` edge--${piece}` : ""}${dropping(edge.id)}"
           data-action="road" data-value="${edge.id}" aria-label="${escapeHtml(label)}"
           style="left: ${edge.x * 100}%; top: ${edge.y * 100}%; --edge-angle: ${edge.angle}deg;${
             owner ? ` --player-color: var(--player-${owner.color})` : ""
@@ -498,14 +513,14 @@ function runGame(
         const building = state.buildings[vertex.id];
         if (building) {
           const label = `${state.players[building.player].name}'s ${building.kind}`;
-          return `<button class="vertex vertex--${building.kind}" data-action="build"
+          return `<button class="vertex vertex--${building.kind}${dropping(vertex.id)}" data-action="build"
             data-value="${vertex.id}" aria-label="${escapeHtml(label)}"
             style="${at}${color(building.player)}"></button>`;
         }
         const knight = state.knights[vertex.id];
         if (knight) {
           const label = `${state.players[knight.player].name}'s ${knight.active ? "active" : "inactive"} ${KNIGHT_RANK[knight.level - 1].toLowerCase()} knight`;
-          return `<button class="vertex vertex--knight" data-action="knight-menu"
+          return `<button class="vertex vertex--knight${dropping(vertex.id)}" data-action="knight-menu"
             data-value="${vertex.id}" data-active="${knight.active}" aria-label="${escapeHtml(label)}"
             style="${at}${color(knight.player)}"><span${upright}>${knight.level}</span></button>`;
         }
@@ -521,6 +536,7 @@ function runGame(
       .join("");
 
     setHtml(pieceLayer, roadHtml + cornerHtml);
+    placed = undefined;
     setHtml(turnEl, turnHtml());
     setHtml(toolbarEl, toolbarHtml());
     setHtml(scoresEl, scoresHtml(state, edges));
@@ -543,7 +559,22 @@ function runGame(
     if (next === state) return;
     undoStack.push(state);
     saveUndo(undoStack);
+    placed = placedSite(state, next);
     show(next);
+  }
+
+  /** Lights the hexes a roll pays out on. The robber's hex stays dark, as it pays nothing. */
+  function lightRolled(total: number): void {
+    state.hexes.forEach((hex, index) => {
+      if (index === state.robber || (hex.number !== total && hex.secondNumber !== total)) return;
+      // the tile and what stands on it are separate elements sharing the hex's index
+      for (const element of boardEl.querySelectorAll(`[data-hex-index="${index}"]`)) {
+        element.classList.add("is-rolled");
+        element.addEventListener("animationend", () => element.classList.remove("is-rolled"), {
+          once: true,
+        });
+      }
+    });
   }
 
   /** Redrawn only when sharing itself changes, so the QR code is not rebuilt on every tap. */
@@ -605,7 +636,10 @@ function runGame(
     builder = currentPlayer(state);
     robberMover = undefined;
     if (total === 7) mode = "robber";
-    commit(recordRoll(state, vertices, total, event, undefined, edges));
+    const rolled = recordRoll(state, vertices, total, event, undefined, edges);
+    if (rolled === state) return;
+    commit(rolled);
+    lightRolled(total);
   }
 
   /** The facedown stack as it stands, with the hex being edited put back so it can be re-picked. */
@@ -913,10 +947,14 @@ function runGame(
   return (snapshot) => {
     // the host goes on sending the finished game to whoever joins, and once is enough here
     if (ended) return;
+    const rolled = snapshot.state.rolls.length > state.rolls.length;
+    placed = placedSite(state, snapshot.state);
     state = snapshot.state;
     dice = snapshot.dice;
     boardStale = true;
     render();
+    const last = state.rolls.at(-1);
+    if (rolled && last) lightRolled(last.total);
     if (!snapshot.ended) return;
     ended = true;
     // a result that cannot be drawn leaves the final board showing, which is the next best thing
