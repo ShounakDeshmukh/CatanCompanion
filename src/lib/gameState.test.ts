@@ -729,10 +729,13 @@ test("a player cannot put down more pieces than their box holds", () => {
   // the other player's box is their own
   assert.notEqual(cycleBuilding({ ...state, buildings: {} }, edges, spare.id, 1), state);
 
-  // four cities, each freeing its settlement; the fifth settlement cannot be upgraded
+  // four cities, each freeing its settlement; with none left the fifth settlement's next
+  // tap takes it off instead, so a misplaced one is never stuck on the board
   for (const corner of settled.slice(0, PIECE_LIMITS.city)) state = cycleBuilding(state, edges, corner, 0);
   assert.deepEqual(piecesOnBoard(state, 0), { settlement: 1, city: 4, road: 0, ship: 0 });
-  assert.equal(cycleBuilding(state, edges, settled[4], 0), state);
+  const removed = cycleBuilding(state, edges, settled[4], 0);
+  assert.deepEqual(piecesOnBoard(removed, 0), { settlement: 0, city: 4, road: 0, ship: 0 });
+  assert.ok(removed.ledger.every((entry) => entry.kind !== "build" || entry.site !== settled[4]));
 });
 
 test("fifteen roads and fifteen ships each, counted apart", () => {

@@ -482,8 +482,9 @@ export function moveRobber(
 
 /**
  * One tap steps a corner through empty, settlement, city and back to empty. Returns the same
- * state untouched when a new settlement would break the distance rule, or when the owner has
- * none of the piece left: a city replaces its settlement, which goes back in the box.
+ * state untouched when a new settlement would break the distance rule or its owner has none
+ * left. A city replaces its settlement, which goes back in the box; with no city left the
+ * step is skipped, so a settlement put down by mistake can still be taken off.
  */
 export function cycleBuilding(
   state: GameState,
@@ -500,8 +501,7 @@ export function cycleBuilding(
       { ...state, buildings: { ...others, [vertexId]: { player, kind: "settlement" } } },
       { kind: "build", player, piece: "settlement", site: vertexId, free: false }
     );
-  } else if (existing.kind === "settlement") {
-    if (!pieceAvailable(state, existing.player, "city")) return state;
+  } else if (existing.kind === "settlement" && pieceAvailable(state, existing.player, "city")) {
     next = logged(
       { ...state, buildings: { ...others, [vertexId]: { ...existing, kind: "city" } } },
       { kind: "build", player: existing.player, piece: "city", site: vertexId, free: false }
