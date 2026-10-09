@@ -1,13 +1,25 @@
+import grainArt from "../../assets/parchment.webp";
+import type { CatanBoard } from "../../data/boards/types";
 import type { GameRecord } from "../../lib/gameHistory";
 import type { GameState } from "../../lib/gameState";
 import type { BoardView } from "../../lib/replay";
 import { SITE_URL } from "../../lib/site";
-import { BODY, HEADING, INK, PIECE_COLOR, type BoardPainter } from "./boardCanvas";
+import {
+  BODY,
+  HEADING,
+  INK,
+  PIECE_COLOR,
+  boardPainter,
+  loadImage,
+  type BoardPainter,
+} from "./boardCanvas";
 
 /** Four by five, the tallest picture feeds and chat apps show whole. */
 const WIDTH = 1080;
 const HEIGHT = 1350;
 const MUTED = "#6b5738";
+
+const GRAIN_SCALE = 2.5;
 
 /** The board starts under the heading and the standings end above the closing lines. */
 const BOARD_TOP = 262;
@@ -18,13 +30,26 @@ const ROWS_SPAN = 200;
 /** From the foot of the board to the first row: a gap, then the column headings. */
 const STANDINGS_HEAD = 88;
 
-/** Text drawn before a web font has loaded falls back for good, so wait for both. */
-export function cardFonts(): Promise<unknown> {
-  return Promise.all([
+/** What the card is drawn with, once it has all loaded. */
+export interface CardArt {
+  paintBoard: BoardPainter;
+  /** The grain of the site's parchment, tiled over the sheet. */
+  grain: HTMLImageElement;
+}
+
+/**
+ * Loads everything a card of this board needs. The fonts are waited for too: text drawn
+ * before a web font has loaded falls back for good.
+ */
+export async function cardArt(board: CatanBoard): Promise<CardArt> {
+  const [paintBoard, grain] = await Promise.all([
+    boardPainter(board),
+    loadImage(grainArt),
     document.fonts.load(`700 64px ${HEADING}`),
     document.fonts.load(`400 40px ${BODY}`),
     document.fonts.load(`700 40px ${BODY}`),
   ]);
+  return { paintBoard, grain };
 }
 
 /** A canvas the card fits at `scale`, set up so the card can be drawn at its full size. */
@@ -58,13 +83,13 @@ export function finalScene(record: GameRecord, state: GameState): Scene {
 /**
  * Draws a finished game's card around one scene of it. The standings sit at the foot of the
  * sheet and the board takes whatever is left above them, so a table of three gets a larger
- * board than a table of six. A GIF has too few colours for the sheet's gradient, which comes
- * out in bands, so `flat` gives the replay a plain sheet.
+ * board than a table of six. A GIF has too few colours for the sheet's gradient and grain,
+ * which come out in bands and speckle, so `flat` gives the replay a plain sheet.
  */
 export function drawResultCard(
   draw: CanvasRenderingContext2D,
   record: GameRecord,
-  paintBoard: BoardPainter,
+  { paintBoard, grain }: CardArt,
   scene: Scene,
   flat: boolean = false
 ): void {
@@ -78,6 +103,13 @@ export function drawResultCard(
   draw.beginPath();
   draw.roundRect(36, 36, WIDTH - 72, HEIGHT - 72, 28);
   draw.fill();
+  const texture = flat ? null : draw.createPattern(grain, "repeat");
+  if (texture) {
+    // the grain is made for the page, and a card is looked at from further off
+    texture.setTransform(new DOMMatrix().scale(GRAIN_SCALE));
+    draw.fillStyle = texture;
+    draw.fill();
+  }
   draw.strokeStyle = "rgb(43 28 16 / 0.35)";
   draw.lineWidth = 2;
   draw.beginPath();

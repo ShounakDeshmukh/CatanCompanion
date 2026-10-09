@@ -1,8 +1,7 @@
 import { summarize, type GameRecord } from "../../lib/gameHistory";
 import type { Moment } from "../../lib/replay";
 import type { GifReply, GifRequest } from "../../workers/gifWorker";
-import type { BoardPainter } from "./boardCanvas";
-import { cardCanvas, drawResultCard, finalScene, type Scene } from "./resultCard";
+import { cardCanvas, drawResultCard, finalScene, type CardArt, type Scene } from "./resultCard";
 
 /** The replay is half the picture's size, which keeps a long game to a megabyte or two. */
 const SCALE = 0.5;
@@ -37,7 +36,7 @@ function sceneAt({ state, changed }: Moment, record: GameRecord): Scene {
  */
 export async function replayGif(
   record: GameRecord,
-  paintBoard: BoardPainter,
+  art: CardArt,
   moments: Moment[]
 ): Promise<Blob> {
   const { canvas, draw } = cardCanvas(SCALE);
@@ -46,7 +45,7 @@ export async function replayGif(
     step === last ? finalScene(record, moment.state) : sceneAt(moment, record)
   );
   const pixels = (scene: Scene) => {
-    drawResultCard(draw, record, paintBoard, scene, true);
+    drawResultCard(draw, record, art, scene, true);
     return draw.getImageData(0, 0, canvas.width, canvas.height).data;
   };
 

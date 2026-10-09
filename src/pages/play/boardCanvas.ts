@@ -36,6 +36,11 @@ const PARCHMENT_EDGE = "#5e4322";
 const HOT = "#b3311b";
 const OUTLINE = "#1d140c";
 const PORT_LABEL = { "3:1": "3:1", brick: "2:1 Brick", wood: "2:1 Wood", wool: "2:1 Wool", wheat: "2:1 Wheat", ore: "2:1 Ore" };
+/** A pointy-top hex's corners, clockwise from the top, a side's length from its centre. */
+const HEX_CORNERS = Array.from({ length: 6 }, (_, corner) => {
+  const angle = (corner * Math.PI) / 3 - Math.PI / 2;
+  return [Math.cos(angle), Math.sin(angle)] as const;
+});
 const EDGE_ITEM = {
   victoryPoint: { label: "1 VP", fill: "#c9a227", ink: "#2b2118" },
   developmentCard: { label: "Dev", fill: HOT, ink: "#f6ecd4" },
@@ -60,7 +65,7 @@ export type BoardPainter = (
 ) => void;
 
 /** Waits for the load event and not for `decode()`, which a tab in the background never answers. */
-function loadImage(src: string): Promise<HTMLImageElement> {
+export function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
@@ -120,6 +125,14 @@ export async function boardPainter(board: CatanBoard): Promise<BoardPainter> {
       paint();
       draw.restore();
     };
+    // a canvas measures shadows on the finished picture, whatever scale is being drawn at
+    const { a, b } = draw.getTransform();
+    const zoom = Math.hypot(a, b);
+    const shadow = (color: string, blur: number, drop: number = 0) => {
+      draw.shadowColor = color;
+      draw.shadowBlur = blur * zoom;
+      draw.shadowOffsetY = drop * zoom;
+    };
     const text = (value: string, y: number, font: string, color: string) => {
       draw.font = font;
       draw.fillStyle = color;
@@ -168,10 +181,7 @@ export async function boardPainter(board: CatanBoard): Promise<BoardPainter> {
     const tile = (hex: Hex, index: number) =>
       at(centres[index], ((hex.orientation ?? 0) * Math.PI) / 180, () => {
         draw.beginPath();
-        for (let corner = 0; corner < 6; corner++) {
-          const angle = (corner * Math.PI) / 3 - Math.PI / 2;
-          draw.lineTo(Math.cos(angle) * sideLength, Math.sin(angle) * sideLength);
-        }
+        for (const [x, y] of HEX_CORNERS) draw.lineTo(x * sideLength, y * sideLength);
         draw.closePath();
         // keeps the page from showing through where two tiles' soft edges meet
         draw.strokeStyle = PARCHMENT_EDGE;
@@ -188,8 +198,7 @@ export async function boardPainter(board: CatanBoard): Promise<BoardPainter> {
     const chit = (hex: Hex, index: number) =>
       at(centres[index], upright, () => {
         if (hex.type === "fog") {
-          draw.shadowColor = "rgb(0 0 0 / 0.55)";
-          draw.shadowBlur = hexSize * 0.04;
+          shadow("rgb(0 0 0 / 0.55)", hexSize * 0.04);
           text("?", 0, `700 ${hexSize * 0.38}px ${HEADING}`, "#f2ede2");
           return;
         }
@@ -231,6 +240,22 @@ export async function boardPainter(board: CatanBoard): Promise<BoardPainter> {
     draw.translate(box.x + box.width / 2, box.y + box.height / 2);
     if (sideways) draw.rotate(Math.PI / 2);
     draw.translate(-width / 2, -height / 2);
+
+    // the whole board casts one shadow, as a set of tiles lying on the sheet would
+    const outline = new Path2D();
+    for (const centre of centres) {
+      HEX_CORNERS.forEach(([x, y], corner) => {
+        const point = [centre.x * width + x * sideLength, centre.y * height + y * sideLength] as const;
+        if (corner === 0) outline.moveTo(...point);
+        else outline.lineTo(...point);
+      });
+      outline.closePath();
+    }
+    draw.save();
+    shadow("rgb(43 28 16 / 0.5)", hexSize * 0.16, hexSize * 0.07);
+    draw.fillStyle = PARCHMENT_EDGE;
+    draw.fill(outline);
+    draw.restore();
 
     view.hexes.forEach(tile);
     view.hexes.forEach((hex, index) => {
@@ -285,8 +310,7 @@ export async function boardPainter(board: CatanBoard): Promise<BoardPainter> {
           draw.arc(0, 0, hexSize * 0.17, 0, Math.PI * 2);
           piece(PIECE_COLOR[view.players[knight.player].color]);
           draw.globalAlpha = 1;
-          draw.shadowColor = "#000";
-          draw.shadowBlur = hexSize * 0.03;
+          shadow("#000", hexSize * 0.03);
           text(String(knight.level), hexSize * 0.01, `700 ${hexSize * 0.17}px ${HEADING}`, "#fff");
         });
       }

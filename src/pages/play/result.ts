@@ -3,10 +3,9 @@ import { summarize } from "../../lib/gameHistory";
 import type { GameState } from "../../lib/gameState";
 import { replay } from "../../lib/replay";
 import { SITE_URL } from "../../lib/site";
-import { boardPainter } from "./boardCanvas";
 import { playerTag } from "./format";
 import { replayGif } from "./replayGif";
-import { cardCanvas, cardFonts, drawResultCard, finalScene } from "./resultCard";
+import { cardArt, cardCanvas, drawResultCard, finalScene } from "./resultCard";
 
 /** Hands a file to the phone's share sheet where there is one, and saves it otherwise. */
 async function shareFile(file: File): Promise<void> {
@@ -42,9 +41,9 @@ export async function renderResult(
   boardLabel: string
 ): Promise<void> {
   const record = summarize(state, boardLabel);
-  const [paintBoard] = await Promise.all([boardPainter(board), cardFonts()]);
+  const art = await cardArt(board);
   const { canvas, draw } = cardCanvas();
-  drawResultCard(draw, record, paintBoard, finalScene(record, state));
+  drawResultCard(draw, record, art, finalScene(record, state));
   const picture = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
   if (!picture) throw new Error("This browser cannot save the result as a picture");
 
@@ -91,7 +90,7 @@ export async function renderResult(
     return;
   }
   // the picture stands on its own, so a replay that cannot be made is simply not offered
-  void replayGif(record, paintBoard, moments).then(
+  void replayGif(record, art, moments).then(
     (film) => offer("#play-share-replay", "Share replay", film, "catan-replay.gif"),
     noReplay
   );
