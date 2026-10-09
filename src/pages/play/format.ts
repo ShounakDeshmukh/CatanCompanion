@@ -101,6 +101,9 @@ export function payoutText(payout: Payout): string {
     .join(", ");
 }
 
+/** Luck with its sign, so that good and bad read apart at a glance. */
+export const signed = (luck: number): string => `${luck >= 0 ? "+" : ""}${luck.toFixed(1)}`;
+
 /** A length of time as minutes and seconds. */
 export function clock(milliseconds: number): string {
   const seconds = Math.max(0, Math.floor(milliseconds / 1000));

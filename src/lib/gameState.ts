@@ -5,7 +5,7 @@ import type {
 } from "../data/boards/types";
 import { RESOURCE_BY_HEX } from "../data/boards/types";
 import { BUILDING_COSTS, IMPROVEMENT_TRACKS, type Commodity } from "../data/costs";
-import { isResourceHex } from "./shuffle";
+import { hexPips, isResourceHex } from "./shuffle";
 import type { Edge, Vertex } from "./vertices";
 
 /** The base box's four first, then the extension's two, then the colours of other sets. */
@@ -67,6 +67,8 @@ export interface Roll {
   event?: EventDie;
   /** Indexed by player. Stored rather than recomputed, as buildings change after the roll. */
   payouts: Payout[];
+  /** What even dice would have paid each player on this roll, with the buildings they had. */
+  expected: number[];
   at: number;
 }
 
@@ -241,6 +243,19 @@ export function payoutForRoll(
   return payouts;
 }
 
+/** A chit's pips are the number of ways to roll it out of 36. */
+export function expectedProduction(
+  state: GameState,
+  vertices: Vertex[],
+  edges: Edge[] = []
+): number[] {
+  const expected = state.players.map(() => 0);
+  eachProduction(state, vertices, edges, (player, hex, cards) => {
+    expected[player] += (hexPips(hex) * cards.length) / 36;
+  });
+  return expected;
+}
+
 /** Whose turn it is, from the moment the last player passed until they pass in turn. */
 export function currentPlayer(state: GameState): number {
   return state.turn % state.players.length;
@@ -263,6 +278,7 @@ export function recordRoll(
     total,
     event,
     payouts: payoutForRoll(state, vertices, total, edges),
+    expected: expectedProduction(state, vertices, edges),
     at,
   };
   return logged(
@@ -624,6 +640,21 @@ export function clothCollected(state: GameState): number[] {
     roll.payouts.forEach((payout, player) => (cloth[player] += payout.clothToken ?? 0));
   }
   return cloth;
+}
+
+/**
+ * How the dice have treated each player: what their numbers paid, roll by roll, against what
+ * even dice would have paid. It is a measure of the dice, not a count of anyone's hand.
+ */
+export function diceLuck(state: GameState): number[] {
+  const luck = state.players.map(() => 0);
+  for (const roll of state.rolls) {
+    roll.payouts.forEach((payout, player) => {
+      for (const count of Object.values(payout)) luck[player] += count;
+      luck[player] -= roll.expected[player] ?? 0;
+    });
+  }
+  return luck;
 }
 
 const COSTS: Record<string, Payout> = Object.fromEntries(

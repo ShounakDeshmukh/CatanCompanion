@@ -26,7 +26,8 @@ collects what.
 - 5-6 players: names the paired player each turn.
 - After each roll, says who collects what. It records the moves made, not the cards held:
   nobody's hand is counted, and nothing is refused for want of cards.
-- A turn-by-turn history of what was built and bought, and dice statistics.
+- A turn-by-turn history of what was built and bought, dice statistics, and how the dice
+  have treated each player.
 - Undo for any step. The game is saved on the device, so a refresh loses nothing.
 - Rolls the dice for who goes first, as the rule book has it, then seats play clockwise.
 - Shows how long each player's turns take, and nudges a turn that runs long.

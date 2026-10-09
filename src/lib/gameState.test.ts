@@ -35,6 +35,7 @@ import {
   changeExtraPoints,
   currentPlayer,
   cycleBuilding,
+  diceLuck,
   endTurn,
   entryCost,
   hasRolled,
@@ -687,9 +688,15 @@ test("a finished game is summed up best player first", () => {
     ["Ben", 1, []],
     ["Asha", 0, []],
   ]);
-  // a roll's payout is all that is said about cards: nobody's hand is counted
-  assert.deepEqual(Object.keys(state.rolls[0]).sort(), ["at", "event", "payouts", "total"]);
-  assert.deepEqual(Object.keys(record.players[0]).sort(), ["awards", "color", "name", "points", "seat"]);
+  // nobody's hand is counted: beside the points there are only the awards and the dice's luck
+  assert.deepEqual(Object.keys(record.players[0]).sort(), ["awards", "color", "luck", "name", "points", "seat"]);
+  // Ben's forest paid one card where even dice would have paid its pips out of 36
+  const due = hexPips(hexes[hexIndex("forest")]) / 36;
+  assert.deepEqual(diceLuck(state), [0, 1 - due]);
+  assert.deepEqual(record.players.map((player) => player.luck), [Math.round((1 - due) * 10) / 10, 0]);
+  // a roll saved without its expectation counts as neither lucky nor unlucky
+  const { expected, ...bare } = state.rolls[0];
+  assert.deepEqual(diceLuck(parseGame(JSON.parse(JSON.stringify({ ...state, rolls: [bare] })))!), [0, 0]);
   // the two awards are worth four points, which puts Asha first with both against her name
   const [holder] = summarize({ ...state, longestRoad: 0, largestArmy: 0 }, "", 99).players;
   assert.deepEqual([holder.name, holder.points, holder.awards], ["Asha", 4, ["longestRoad", "largestArmy"]]);

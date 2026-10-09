@@ -5,6 +5,7 @@ import { startingCards } from "../../lib/gameSetup";
 import {
   TRACKS,
   clothCollected,
+  diceLuck,
   entryCost,
   knightsPlayed,
   playerPoints,
@@ -25,6 +26,7 @@ import {
   escapeHtml,
   payoutText,
   playerTag,
+  signed,
   takings,
   waysToRoll,
 } from "./format";
@@ -225,6 +227,7 @@ export function statsHtml(state: GameState): string {
   const expected = TOTALS.map((total) => (rolls * waysToRoll(total)) / 36);
   const tallest = Math.max(1, ...counts, ...expected);
   const pace = turnPace(state);
+  const luck = diceLuck(state);
   const turnTime = (time: number | null) => (time === null ? "-" : clock(time));
 
   return `
@@ -244,16 +247,18 @@ export function statsHtml(state: GameState): string {
         </div>`
       ).join("")}
     </div>
-    <p class="play-muted">Bars are rolls so far; the line is what even dice would give.</p>
+    <p class="play-muted">Bars are rolls so far; the line is what even dice would give. Luck is
+      how far the dice have run for or against a player's numbers.</p>
     <div class="play-table-wrap">
       <table class="play-table">
-        <thead><tr><th>Player</th><th>Average turn</th></tr></thead>
+        <thead><tr><th>Player</th><th>Luck</th><th>Average turn</th></tr></thead>
         <tbody>
           ${state.players
             .map(
               (player, i) => `
             <tr>
               <th scope="row">${playerTag(player)}</th>
+              <td class="play-table__total">${signed(luck[i])}</td>
               <td>${turnTime(pace.players[i])}</td>
             </tr>`
             )

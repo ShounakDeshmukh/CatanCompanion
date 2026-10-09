@@ -14,6 +14,7 @@ import {
   type BoardPainter,
   type Mark,
 } from "./boardCanvas";
+import { signed } from "./format";
 
 /** Four by five, the tallest picture feeds and chat apps show whole. */
 const WIDTH = 1080;
@@ -182,7 +183,8 @@ export function drawResultCard(
   const board = { x: 80, y: BOARD_TOP, width: WIDTH - 160, height: top - STANDINGS_HEAD - BOARD_TOP };
   paintBoard(draw, scene.view, board, scene.mark);
 
-  text("POINTS", 990, top - 48, `700 22px ${BODY}`, MUTED, "right");
+  text("POINTS", 860, top - 48, `700 22px ${BODY}`, MUTED, "right");
+  text("LUCK", 990, top - 48, `700 22px ${BODY}`, MUTED, "right");
   players.forEach((player, place) => {
     const y = top + place * step;
     draw.strokeStyle = "rgb(43 28 16 / 0.15)";
@@ -204,11 +206,12 @@ export function drawResultCard(
     if (player.seat === scene.crowned) {
       drawCrown(draw, 156 + draw.measureText(player.name).width + 16 * fit, y - 30 * fit, 30 * fit);
     }
-    text(String(player.points), 990, y, `700 ${46 * fit}px ${HEADING}`, INK, "right");
+    text(String(player.points), 860, y, `700 ${46 * fit}px ${HEADING}`, INK, "right");
+    text(signed(player.luck), 990, y, `400 ${38 * fit}px ${BODY}`, MUTED, "right");
 
     // what the player holds is set out leftwards from the points, the way a table would lay
     // the award cards beside them
-    let right = 890;
+    let right = 760;
     for (const award of player.awards) {
       draw.font = `700 ${24 * fit}px ${BODY}`;
       const wide = draw.measureText(AWARD_NAME[award]).width + 28 * fit;
@@ -225,12 +228,13 @@ export function drawResultCard(
     }
   });
 
+  const luckiest = record.players.reduce((best, player) => (player.luck > best.luck ? player : best));
   const mostRolled = record.rolls.indexOf(Math.max(...record.rolls)) + 2;
   const lines = [
     `${record.turns} turns in about ${minutes} ${minutes === 1 ? "minute" : "minutes"}, first to ${record.target}`,
   ];
   if (record.turns > 0) {
-    lines.push(`The dice favoured ${mostRolled}, rolled ${record.rolls[mostRolled - 2]} times`);
+    lines.push(`The dice favoured ${mostRolled}, and ${luckiest.name} had the luck`);
   }
   lines.forEach((line, index) => text(line, WIDTH / 2, 1196 + index * 40, `400 31px ${BODY}`, INK, "center"));
   text(SITE_URL.replace(/^https:\/\/|\/$/g, ""), WIDTH / 2, 1276, `400 25px ${BODY}`, MUTED, "center");
