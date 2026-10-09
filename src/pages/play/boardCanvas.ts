@@ -54,14 +54,20 @@ export interface Box {
 }
 
 /**
- * Draws a view of the board as large as fits in a box, centred. `changed` rings the corner,
- * side or hex that was just played on.
+ * The corner, side or hex that was just played on, which is ringed. A piece on a corner or
+ * side can be drawn part of the way to solid, for a frame that fades it in.
  */
+export interface Mark {
+  site: string | number;
+  opacity?: number;
+}
+
+/** Draws a view of the board as large as fits in a box, centred. */
 export type BoardPainter = (
   draw: CanvasRenderingContext2D,
   view: BoardView,
   box: Box,
-  changed?: string | number
+  mark?: Mark
 ) => void;
 
 /** Waits for the load event and not for `decode()`, which a tab in the background never answers. */
@@ -106,7 +112,7 @@ export async function boardPainter(board: CatanBoard): Promise<BoardPainter> {
     }
   }
 
-  return (draw, view, box, changed) => {
+  return (draw, view, box, mark) => {
     // a Seafarers map is turned a quarter, so it fills the box the other way about
     const shape = sideways ? 1 / aspect : aspect;
     // harbor plaques and pieces on the coast overhang the grid a little
@@ -269,11 +275,14 @@ export async function boardPainter(board: CatanBoard): Promise<BoardPainter> {
     thief(view.robber, robber);
     thief(view.pirate, pirate);
 
+    const presence = mark?.opacity ?? 1;
+    const presenceAt = (site: string) => (site === mark?.site ? presence : 1);
     const ships = new Set(view.ships);
     for (const edge of edges) {
       const owner = view.roads[edge.id];
       if (owner === undefined) continue;
       at(edge, (edge.angle * Math.PI) / 180, () => {
+        draw.globalAlpha = presenceAt(edge.id);
         const long = hexSize * 0.48;
         const thick = hexSize * 0.1;
         draw.beginPath();
@@ -292,6 +301,7 @@ export async function boardPainter(board: CatanBoard): Promise<BoardPainter> {
       const knight = view.knights[vertex.id];
       if (building) {
         at(vertex, 0, () => {
+          draw.globalAlpha = presenceAt(vertex.id);
           const half = hexSize * (building.kind === "city" ? 0.19 : 0.13);
           draw.beginPath();
           draw.roundRect(-half, -half, half * 2, half * 2, hexSize * 0.02);
@@ -305,22 +315,23 @@ export async function boardPainter(board: CatanBoard): Promise<BoardPainter> {
       } else if (knight) {
         at(vertex, upright, () => {
           // asleep, a knight is faded
-          draw.globalAlpha = knight.active ? 1 : 0.6;
+          draw.globalAlpha = presenceAt(vertex.id) * (knight.active ? 1 : 0.6);
           draw.beginPath();
           draw.arc(0, 0, hexSize * 0.17, 0, Math.PI * 2);
           piece(PIECE_COLOR[view.players[knight.player].color]);
-          draw.globalAlpha = 1;
+          draw.globalAlpha = presenceAt(vertex.id);
           shadow("#000", hexSize * 0.03);
           text(String(knight.level), hexSize * 0.01, `700 ${hexSize * 0.17}px ${HEADING}`, "#fff");
         });
       }
     }
 
-    const spot = typeof changed === "number" ? centres[changed] : sites.get(changed ?? "");
+    const spot = typeof mark?.site === "number" ? centres[mark.site] : sites.get(mark?.site ?? "");
     if (spot) {
       at(spot, 0, () => {
+        draw.globalAlpha = presence;
         draw.beginPath();
-        draw.arc(0, 0, hexSize * (typeof changed === "number" ? 0.34 : 0.3), 0, Math.PI * 2);
+        draw.arc(0, 0, hexSize * (typeof mark?.site === "number" ? 0.34 : 0.3), 0, Math.PI * 2);
         draw.strokeStyle = OUTLINE;
         draw.lineWidth = hexSize * 0.07;
         draw.stroke();

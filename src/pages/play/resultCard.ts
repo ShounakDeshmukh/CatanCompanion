@@ -12,6 +12,7 @@ import {
   boardPainter,
   loadImage,
   type BoardPainter,
+  type Mark,
 } from "./boardCanvas";
 
 /** Four by five, the tallest picture feeds and chat apps show whole. */
@@ -68,7 +69,7 @@ export function cardCanvas(scale: number = 1): { canvas: HTMLCanvasElement; draw
 export interface Scene {
   headline: string;
   view: BoardView;
-  changed?: string | number;
+  mark?: Mark;
   /** The standings to show, in the order the game finished in. */
   players: GameRecord["players"];
 }
@@ -145,7 +146,7 @@ export function drawResultCard(
   const fit = step / ROW_STEP;
   const top = STANDINGS_END - (players.length - 1) * step;
   const board = { x: 80, y: BOARD_TOP, width: WIDTH - 160, height: top - STANDINGS_HEAD - BOARD_TOP };
-  paintBoard(draw, scene.view, board, scene.changed);
+  paintBoard(draw, scene.view, board, scene.mark);
 
   text("POINTS", 760, top - 48, `700 22px ${BODY}`, MUTED, "right");
   text("CARDS", 880, top - 48, `700 22px ${BODY}`, MUTED, "right");
